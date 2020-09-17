@@ -1,7 +1,5 @@
 package com.example.chess;
 
-import com.example.chess.chessman.HighLightController;
-
 public class Tile {
     private TileType tileType;
     private final boolean isBlack;
