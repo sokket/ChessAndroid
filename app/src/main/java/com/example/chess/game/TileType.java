@@ -189,6 +189,14 @@ public enum TileType {
         return isWhite;
     }
 
+    public boolean isPawnFirstMove() {
+        return pawnFirstMove;
+    }
+
+    public void setPawnFirstMove(boolean pawnFirstMove) {
+        this.pawnFirstMove = pawnFirstMove;
+    }
+
     public Position[][] getMovesFor(int x, int y) {
         return movesCalculator.calculateFor(x, y);
     }
