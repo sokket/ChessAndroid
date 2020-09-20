@@ -82,7 +82,7 @@ public class ChessGame {
 
     TileType startingLineup(int i, int j) {
         if (i == 1) return TileType.BLACK_PAWN;
-        else if (i == 6) return TileType.LIGHT_BISHOP;
+        else if (i == 6) return TileType.LIGHT_PAWN;
         else if (i == 0 && (j == 0 || j == 7)) return TileType.BLACK_ROOK;
         else if (i == 7 && (j == 0 || j == 7)) return TileType.LIGHT_ROOK;
         else if (i == 0 && (j == 1 || j == 6)) return TileType.BLACK_KNIGHT;
