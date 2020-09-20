@@ -1,4 +1,4 @@
-package com.example.chess;
+package com.example.chess.game;
 
 public class Tile {
     private TileType tileType;
@@ -34,7 +34,7 @@ public class Tile {
         return isLighted;
     }
 
-    void setHighLighted(boolean isHighLighted) {
+    public void setHighLighted(boolean isHighLighted) {
         isLighted = isHighLighted;
         highLightController.setHighLighted(isHighLighted);
     }
