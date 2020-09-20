@@ -78,6 +78,7 @@ public class ChessGame {
                 );
             }
         });
+            chessView.setResetOnPressListener(this::reset);
     }
 
     TileType startingLineup(int i, int j) {
@@ -93,8 +94,6 @@ public class ChessGame {
         else if (i == 7 && j == 4) return TileType.LIGHT_QUEEN;
         else if (i == 0 && j == 4) return TileType.BLACK_KING;
         else if (i == 7 && j == 3) return TileType.LIGHT_KING;
-        else if (i == 5 && j == 6) return TileType.LIGHT_QUEEN;
-        else if (i == 3 && j == 4) return TileType.BLACK_PAWN;
         return TileType.BLANK;
     }
 

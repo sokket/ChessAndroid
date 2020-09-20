@@ -7,14 +7,14 @@ public enum TileType {
     LIGHT_BISHOP(TileType::bishopMoves, true),
     LIGHT_KING(TileType::kingMoves, true),
     LIGHT_KNIGHT(TileType::knightMoves, true),
-    LIGHT_PAWN(TileType::pawnMoves, true),
+    LIGHT_PAWN(TileType::whitePawnMoves, true),
     LIGHT_QUEEN(TileType::queenMoves, true),
     LIGHT_ROOK(TileType::rookMoves, true),
     BLANK(TileType::blankMoves, true),
     BLACK_BISHOP(TileType::bishopMoves, false),
     BLACK_KING(TileType::kingMoves, false),
     BLACK_KNIGHT(TileType::knightMoves, false),
-    BLACK_PAWN(TileType::pawnMoves, false),
+    BLACK_PAWN(TileType::blackPawnMoves, false),
     BLACK_QUEEN(TileType::queenMoves, false),
     BLACK_ROOK(TileType::rookMoves, false);
 
@@ -22,7 +22,7 @@ public enum TileType {
         return new Position[][]{};
     }
 
-    private static Position[][] pawnMoves(int x, int y) {
+    private static Position[][] whitePawnMoves(int x, int y) {
         return new Position[][]{
                 new Position[]{
                         new Position(x, y - 1),
@@ -33,6 +33,20 @@ public enum TileType {
                 },
                 new Position[]{
                         new Position(x - 1, y - 1)
+                }
+        };
+    }
+    private static Position[][] blackPawnMoves(int x, int y) {
+        return new Position[][]{
+                new Position[]{
+                        new Position(x, y + 1),
+                        new Position(x, y + 2)
+                },
+                new Position[]{
+                        new Position(x + 1, y + 1)
+                },
+                new Position[]{
+                        new Position(x - 1, y + 1)
                 }
         };
     }

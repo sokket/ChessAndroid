@@ -1,8 +1,10 @@
 package com.example.chess;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 
@@ -14,11 +16,13 @@ import com.bumptech.glide.Glide;
 import com.example.chess.game.ChessGame;
 import com.example.chess.game.ChessView;
 import com.example.chess.game.OnPressListener;
+import com.example.chess.game.ResetOnPressListener;
 import com.example.chess.game.TileType;
 
 public class MainActivity extends AppCompatActivity implements ChessView {
 
     private OnPressListener onPressListener;
+    private ResetOnPressListener resetOnPressListener;
     private final CardView[][] views = new CardView[8][8];
 
     private int whiteColor;
@@ -33,6 +37,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
     private void loadViews() {
         GridLayout grid = findViewById(R.id.grid);
+        Button button = findViewById(R.id.button);
         LayoutInflater layoutInflater = LayoutInflater.from(this);
 
         for (int i = 0; i < 8; i++)
@@ -46,6 +51,8 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
                 views[i][j] = tileView;
             }
+        button.setBackgroundColor(Color.RED);
+        button.setOnClickListener(v -> resetOnPressListener.reset());
     }
 
     @Override
@@ -80,5 +87,10 @@ public class MainActivity extends AppCompatActivity implements ChessView {
     @Override
     public void setOnPressListener(OnPressListener onPressListener) {
         this.onPressListener = onPressListener;
+    }
+
+    @Override
+    public void setResetOnPressListener(ResetOnPressListener resetOnPressListener) {
+        this.resetOnPressListener = resetOnPressListener;
     }
 }
