@@ -6,14 +6,23 @@ import java.util.List;
 public class ChessGame {
     private final Tile[][] gameBoard = new Tile[8][8];
     private final ChessView chessView;
+    private ActionTransmitter actionTransmitter;
+    private final boolean netMode;
 
     private int highLightSrcX;
     private int highLightSrcY;
 
     private boolean whiteTurn = true;
 
+    public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter) {
+        this.chessView = chessView;
+        this.actionTransmitter = actionTransmitter;
+        netMode = true;
+    }
+
     public ChessGame(ChessView chessView) {
         this.chessView = chessView;
+        netMode = false;
     }
 
     private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
@@ -66,6 +75,8 @@ public class ChessGame {
                 TileType targetTileType = highLightSourceTile.getTileType();
                 highLightSourceTile.setTileType(TileType.BLANK);
                 currentTile.setTileType(targetTileType);
+                if (netMode)
+                    actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
             } else {
                 clearHighLight();
                 highLightSrcX = x;
@@ -78,7 +89,16 @@ public class ChessGame {
                 );
             }
         });
-            chessView.setResetOnPressListener(this::reset);
+        chessView.setResetOnPressListener(this::reset);
+
+        if (netMode)
+            actionTransmitter.setOnMakeMoveListener((oX, oY, nX, nY) -> {
+                if (checkOverLap(new Position(oX, oY)) && checkOverLap(new Position(nX, nY))) {
+                    TileType tileType = gameBoard[oY][oX].getTileType();
+                    gameBoard[oY][oX].setTileType(TileType.BLANK);
+                    gameBoard[nY][nX].setTileType(tileType);
+                }
+            });
     }
 
     TileType startingLineup(int i, int j) {

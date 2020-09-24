@@ -5,8 +5,11 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
@@ -18,6 +21,7 @@ import com.example.chess.game.ChessView;
 import com.example.chess.game.OnPressListener;
 import com.example.chess.game.ResetOnPressListener;
 import com.example.chess.game.TileType;
+import com.example.chess.net.ActionTransmitterImpl;
 
 public class MainActivity extends AppCompatActivity implements ChessView {
 
@@ -28,6 +32,8 @@ public class MainActivity extends AppCompatActivity implements ChessView {
     private int whiteColor;
     private int blackColor;
     private int highLightColor;
+
+    ChessGame chessGame;
 
     private void initColors() {
         whiteColor = ContextCompat.getColor(this, R.color.white);
@@ -60,9 +66,40 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initColors();
-        ChessGame chessGame = new ChessGame(this);
-        loadViews();
-        chessGame.initGame();
+
+        ActionTransmitterImpl actionTransmitter = new ActionTransmitterImpl();
+
+        EditText editText = findViewById(R.id.key_prompt);
+        Button join = findViewById(R.id.join_btn);
+        join.setOnClickListener(v -> actionTransmitter.connect(
+                "37.232.178.243",
+                8081,
+                () -> actionTransmitter.join(editText.getText().toString(), () -> {
+                            chessGame = new ChessGame(this, actionTransmitter);
+                            loadViews();
+                            chessGame.initGame();
+                        },
+                        () -> Toast.makeText(this, "Error join to server", Toast.LENGTH_SHORT).show()
+                ),
+                () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
+        ));
+
+        Button create = findViewById(R.id.create_btn);
+        create.setOnClickListener(v -> actionTransmitter.connect(
+                "37.232.178.243",
+                8081,
+                () -> actionTransmitter.createRoom(key -> {
+                            editText.setText(key);
+                            chessGame = new ChessGame(this, actionTransmitter);
+                            loadViews();
+                            chessGame.initGame();
+                        },
+                        () -> Toast.makeText(this, "Error creating room", Toast.LENGTH_SHORT).show()
+                ),
+                () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
+        ));
+
+
     }
 
     @Override
