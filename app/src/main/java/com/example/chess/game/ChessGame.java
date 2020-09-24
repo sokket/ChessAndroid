@@ -13,6 +13,7 @@ public class ChessGame {
     private int highLightSrcY;
 
     private boolean whiteTurn = true;
+    private static boolean cut;
 
     public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter) {
         this.chessView = chessView;
@@ -27,26 +28,58 @@ public class ChessGame {
 
     private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
         ArrayList<Position> trimmed = new ArrayList<>();
-        for (Position[] positions : moves) {
-            boolean cut = false;
-            for (Position position : positions)
-                if (!cut && checkOverLap(position)) {
-                    Tile tile = gameBoard[position.getY()][position.getX()];
-                    boolean targetColor = tile.getTileType().isWhite();
-                    if (tile.getTileType() == TileType.BLANK)
-                        trimmed.add(position);
-                    else if (
-                            tile.getTileType() == TileType.BLACK_KING ||
-                                    tile.getTileType() == TileType.LIGHT_KING)
-                        cut = true;
-                    else if (isSrcWhite != targetColor) {
-                        trimmed.add(position);
-                        cut = true;
-                    } else
-                        cut = true;
+        cut = false;
+
+        boolean realPawn = (gameBoard[highLightSrcY][highLightSrcX].getTileType() == TileType.LIGHT_PAWN ||
+                gameBoard[highLightSrcY][highLightSrcX].getTileType() == TileType.BLACK_PAWN);
+        if (realPawn) {
+            for(Position position : moves[0])
+                if (!cut)
+                    trimRaysHelper(trimmed, position, isSrcWhite);
+            for (Position[] positions : moves)
+                for (Position position : positions) {
+                    if (checkOverLap(position)) {
+                        Tile tile = getTile(position);
+                        if (tile.getTileType() != TileType.BLANK & isSrcWhite != checkOnBlack(tile))
+                            trimmed.add(position);
+                    }
                 }
+        } else {
+            for (Position[] positions : moves) {
+                cut = false;
+                for (Position position : positions)
+                    if (!cut)
+                        trimRaysHelper(trimmed, position, isSrcWhite);
+            }
         }
+
         return trimmed;
+    }
+
+    protected void trimRaysHelper (ArrayList<Position> trimmed, Position position, boolean isSrcWhite) {
+        if (checkOverLap(position)) {
+            Tile tile = getTile(position);
+            boolean targetColor = checkOnBlack(tile);
+            if (tile.getTileType() == TileType.BLANK)
+                trimmed.add(position);
+            else if (
+                    tile.getTileType() == TileType.BLACK_KING ||
+                            tile.getTileType() == TileType.LIGHT_KING) {
+                cut = true;
+            }
+            else if (isSrcWhite != targetColor) {
+                trimmed.add(position);
+                cut = true;
+            } else
+                cut= true;
+        }
+    }
+
+    protected boolean checkOnBlack(Tile tile) {
+        return tile.getTileType().isWhite();
+    }
+    protected Tile getTile (Position position) {
+        return gameBoard[position.getY()][position.getX()];
     }
 
     public void initGame() {

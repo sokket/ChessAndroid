@@ -24,29 +24,30 @@ public enum TileType {
 
     private static Position[][] whitePawnMoves(int x, int y) {
         return new Position[][]{
-                new Position[]{
+                y == 6 ? new Position[]{
                         new Position(x, y - 1),
                         new Position(x, y - 2)
-                },
-                new Position[]{
-                        new Position(x + 1, y - 1)
-                },
-                new Position[]{
+                } : new Position[]{
+                        new Position(x, y - 1)
+                }, new Position[]{
                         new Position(x - 1, y - 1)
+                }, new Position[]{
+                        new Position(x + 1, y - 1)
                 }
         };
     }
+
     private static Position[][] blackPawnMoves(int x, int y) {
         return new Position[][]{
-                new Position[]{
+                y == 1 ? new Position[]{
                         new Position(x, y + 1),
                         new Position(x, y + 2)
-                },
-                new Position[]{
-                        new Position(x + 1, y + 1)
-                },
-                new Position[]{
+                } : new Position[]{
+                        new Position(x, y + 1)
+                }, new Position[]{
                         new Position(x - 1, y + 1)
+                }, new Position[]{
+                        new Position(x + 1, y + 1)
                 }
         };
     }
