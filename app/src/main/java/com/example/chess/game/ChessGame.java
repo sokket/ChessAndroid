@@ -34,7 +34,7 @@ public class ChessGame {
         boolean realPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
         if (realPawn) {
             for (Position position : moves[0])
-                if (!cut)
+                if (!cut && checkOverLap(position))
                     trimRaysHelper(trimmed, position, isSrcWhite, true);
             for (int i = 1; i < moves.length; i++)
                 for (int j = 0; j < moves[i].length; j++) {
@@ -48,7 +48,7 @@ public class ChessGame {
             for (Position[] positions : moves) {
                 cut = false;
                 for (Position position : positions)
-                    if (!cut)
+                    if (!cut && checkOverLap(position))
                         trimRaysHelper(trimmed, position, isSrcWhite, false);
             }
         }
