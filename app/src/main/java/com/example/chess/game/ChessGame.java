@@ -28,47 +28,35 @@ public class ChessGame {
 
     private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
         ArrayList<Position> trimmed = new ArrayList<>();
-        cut = false;
         TileType tileType = gameBoard[highLightSrcY][highLightSrcX].getTileType();
+        boolean isPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
 
-        boolean realPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
-        if (realPawn) {
-            for (Position position : moves[0])
-                if (!cut && checkOverLap(position))
-                    trimRaysHelper(trimmed, position, isSrcWhite, true);
-            for (int i = 1; i < moves.length; i++)
-                for (int j = 0; j < moves[i].length; j++) {
-                    if (checkOverLap(moves[i][j])) {
-                        Tile tile = getTile(moves[i][j]);
-                        if (tile.getTileType() != TileType.BLANK && isSrcWhite != checkOnBlack(tile))
-                            trimmed.add(moves[i][j]);
-                    }
-                }
-        } else {
-            for (Position[] positions : moves) {
-                cut = false;
-                for (Position position : positions)
-                    if (!cut && checkOverLap(position))
-                        trimRaysHelper(trimmed, position, isSrcWhite, false);
+        for (int i = 0; i < moves.length; i++) {
+            cut = false;
+            for (int j = 0; j < moves[i].length; j++) {
+                if (!cut && checkOverLap(moves[i][j]))
+                    trimRaysHelper(trimmed, moves[i][j], isSrcWhite, isPawn, i);
             }
         }
         return trimmed;
     }
 
-    private void trimRaysHelper(ArrayList<Position> trimmed, Position position, boolean isSrcWhite, boolean isPawn) {
+    private void trimRaysHelper(ArrayList<Position> trimmed, Position position, boolean isSrcWhite, boolean isPawn, int i) {
         if (checkOverLap(position)) {
             Tile tile = getTile(position);
             boolean targetColor = checkOnBlack(tile);
-            if (tile.getTileType() == TileType.BLANK)
+            if (tile.getTileType() == TileType.BLANK && (!isPawn || i < 1))
                 trimmed.add(position);
             else if (
                     tile.getTileType() == TileType.BLACK_KING ||
                             tile.getTileType() == TileType.LIGHT_KING) {
                 cut = true;
-            } else if (isSrcWhite != targetColor && !isPawn) {
+            } else if (
+                    tile.getTileType() != TileType.BLANK &&
+                            isSrcWhite != targetColor && (!isPawn || i > 0)) {
                 trimmed.add(position);
                 cut = true;
-            } else
+            }  else
                 cut = true;
         }
     }
