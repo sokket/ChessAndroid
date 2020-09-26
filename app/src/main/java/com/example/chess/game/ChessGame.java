@@ -42,23 +42,21 @@ public class ChessGame {
     }
 
     private void trimRaysHelper(ArrayList<Position> trimmed, Position position, boolean isSrcWhite, boolean isPawn, int i) {
-        if (checkOverLap(position)) {
-            Tile tile = getTile(position);
-            boolean targetColor = checkOnBlack(tile);
-            if (tile.getTileType() == TileType.BLANK && (!isPawn || i < 1))
-                trimmed.add(position);
-            else if (
-                    tile.getTileType() == TileType.BLACK_KING ||
-                            tile.getTileType() == TileType.LIGHT_KING) {
-                cut = true;
-            } else if (
-                    tile.getTileType() != TileType.BLANK &&
-                            isSrcWhite != targetColor && (!isPawn || i > 0)) {
-                trimmed.add(position);
-                cut = true;
-            }  else
-                cut = true;
-        }
+        Tile tile = getTile(position);
+        boolean targetColor = checkOnBlack(tile);
+        if (tile.getTileType() == TileType.BLANK && (!isPawn || i < 1))
+            trimmed.add(position);
+        else if (
+                tile.getTileType() == TileType.BLACK_KING ||
+                        tile.getTileType() == TileType.LIGHT_KING) {
+            cut = true;
+        } else if (
+                tile.getTileType() != TileType.BLANK &&
+                        isSrcWhite != targetColor && (!isPawn || i > 0)) {
+            trimmed.add(position);
+            cut = true;
+        } else
+            cut = true;
     }
 
     private boolean checkOnBlack(Tile tile) {
