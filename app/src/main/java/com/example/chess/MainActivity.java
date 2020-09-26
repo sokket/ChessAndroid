@@ -70,23 +70,12 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
         EditText editText = findViewById(R.id.key_prompt);
         Button join = findViewById(R.id.join_btn);
-        join.setOnClickListener(v -> actionTransmitter.connect(
-                "37.232.178.243",
-                8081,
-                () -> actionTransmitter.join(editText.getText().toString(), () -> {
-                            chessGame = new ChessGame(this, actionTransmitter);
-                            loadViews();
-                            chessGame.initGame();
-                        },
-                        () -> Toast.makeText(this, "Error join to server", Toast.LENGTH_SHORT).show()
-                ),
-                () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
-        ));
-
+        join.setOnClickListener(v -> onlineGame(false, actionTransmitter, editText));
+                                                //createGame?, actionTransmitter, editText
         Button create = findViewById(R.id.create_btn);
         create.setOnClickListener(v -> {
-            onlineGame(actionTransmitter, editText);
-            //offlineGame(actionTransmitter);
+            onlineGame(true, actionTransmitter, editText);//createGame?, actionTransmitter, editText
+            //TODO: offlineGame(actionTransmitter);
         });
     }
 
@@ -119,20 +108,34 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         this.resetOnPressListener = resetOnPressListener;
     }
 
-    private void onlineGame(ActionTransmitterImpl actionTransmitter, EditText editText) {
-        actionTransmitter.connect(
-                "37.232.178.243",
-                8081,
-                () -> actionTransmitter.createRoom(key -> {
-                            editText.setText(key);
-                            chessGame = new ChessGame(this, actionTransmitter);
-                            loadViews();
-                            chessGame.initGame();
-                        },
-                        () -> Toast.makeText(this, "Error creating room", Toast.LENGTH_SHORT).show()
-                ),
-                () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
-        );
+    private void onlineGame(boolean connect, ActionTransmitterImpl actionTransmitter, EditText editText) {
+        if (connect)
+            actionTransmitter.connect(
+                    "37.232.178.243",
+                    8081,
+                    () -> actionTransmitter.createRoom(key -> {
+                                editText.setText(key);
+                                chessGame = new ChessGame(this, actionTransmitter);
+                                loadViews();
+                                chessGame.initGame();
+                            },
+                            () -> Toast.makeText(this, "Error creating room", Toast.LENGTH_SHORT).show()
+                    ),
+                    () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
+            );
+        else
+            actionTransmitter.connect(
+                    "37.232.178.243",
+                    8081,
+                    () -> actionTransmitter.join(editText.getText().toString(), () -> {
+                                chessGame = new ChessGame(this, actionTransmitter);
+                                loadViews();
+                                chessGame.initGame();
+                            },
+                            () -> Toast.makeText(this, "Error join to server", Toast.LENGTH_SHORT).show()
+                    ),
+                    () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
+            );
     }
 
     private void offlineGame(ActionTransmitterImpl actionTransmitter) {
