@@ -74,7 +74,8 @@ public class MainActivity extends AppCompatActivity implements ChessView {
                                                 //createGame?, actionTransmitter, editText
         Button create = findViewById(R.id.create_btn);
         create.setOnClickListener(v -> {
-            onlineGame(true, actionTransmitter, editText);//createGame?, actionTransmitter, editText
+            onlineGame(true, actionTransmitter, editText);
+            //createGame?, actionTransmitter, editText
             //TODO: offlineGame(actionTransmitter);
         });
     }
@@ -138,8 +139,8 @@ public class MainActivity extends AppCompatActivity implements ChessView {
             );
     }
 
-    private void offlineGame(ActionTransmitterImpl actionTransmitter) {
-        chessGame = new ChessGame(this, actionTransmitter);
+    private void offlineGame() {
+        chessGame = new ChessGame(this);
         loadViews();
         chessGame.initGame();
     }

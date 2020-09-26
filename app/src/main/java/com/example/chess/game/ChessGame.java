@@ -13,7 +13,6 @@ public class ChessGame {
     private int highLightSrcY;
 
     private boolean whiteTurn = true;
-    private boolean cut;
 
     public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter) {
         this.chessView = chessView;
@@ -32,31 +31,28 @@ public class ChessGame {
         boolean isPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
 
         for (int i = 0; i < moves.length; i++) {
-            cut = false;
             for (int j = 0; j < moves[i].length; j++) {
-                if (!cut && checkOverLap(moves[i][j]))
-                    trimRaysHelper(trimmed, moves[i][j], isSrcWhite, isPawn, i);
+                if (checkOverLap(moves[i][j])) {
+                    Position position = moves[i][j];
+                    Tile tile = getTile(position);
+                    boolean targetColor = checkOnBlack(tile);
+                    if (tile.getTileType() == TileType.BLANK && (!isPawn || i == 0))
+                        trimmed.add(position);
+                    else if (
+                            tile.getTileType() == TileType.BLACK_KING ||
+                                    tile.getTileType() == TileType.LIGHT_KING) {
+                        break;
+                    } else if (
+                            tile.getTileType() != TileType.BLANK &&
+                                    isSrcWhite != targetColor && (!isPawn || i != 0)) {
+                        trimmed.add(position);
+                        break;
+                    } else
+                        break;
+                }
             }
         }
         return trimmed;
-    }
-
-    private void trimRaysHelper(ArrayList<Position> trimmed, Position position, boolean isSrcWhite, boolean isPawn, int i) {
-        Tile tile = getTile(position);
-        boolean targetColor = checkOnBlack(tile);
-        if (tile.getTileType() == TileType.BLANK && (!isPawn || i < 1))
-            trimmed.add(position);
-        else if (
-                tile.getTileType() == TileType.BLACK_KING ||
-                        tile.getTileType() == TileType.LIGHT_KING) {
-            cut = true;
-        } else if (
-                tile.getTileType() != TileType.BLANK &&
-                        isSrcWhite != targetColor && (!isPawn || i > 0)) {
-            trimmed.add(position);
-            cut = true;
-        } else
-            cut = true;
     }
 
     private boolean checkOnBlack(Tile tile) {
