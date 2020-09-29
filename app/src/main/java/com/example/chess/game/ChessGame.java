@@ -126,9 +126,9 @@ public class ChessGame {
         else if (i == 0 && (j == 2 || j == 5)) return TileType.BLACK_BISHOP;
         else if (i == 7 && (j == 2 || j == 5)) return TileType.LIGHT_BISHOP;
         else if (i == 0 && j == 3) return TileType.BLACK_QUEEN;
-        else if (i == 7 && j == 4) return TileType.LIGHT_QUEEN;
+        else if (i == 7 && j == 3) return TileType.LIGHT_QUEEN;
         else if (i == 0 && j == 4) return TileType.BLACK_KING;
-        else if (i == 7 && j == 3) return TileType.LIGHT_KING;
+        else if (i == 7 && j == 4) return TileType.LIGHT_KING;
         return TileType.BLANK;
     }
 
