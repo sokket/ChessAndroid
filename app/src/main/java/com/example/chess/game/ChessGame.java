@@ -27,26 +27,39 @@ public class ChessGame {
 
     private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
         ArrayList<Position> trimmed = new ArrayList<>();
-        for (Position[] positions : moves) {
-            boolean cut = false;
-            for (Position position : positions)
-                if (!cut && checkOverLap(position)) {
-                    Tile tile = gameBoard[position.getY()][position.getX()];
-                    boolean targetColor = tile.getTileType().isWhite();
-                    if (tile.getTileType() == TileType.BLANK)
+        TileType tileType = gameBoard[highLightSrcY][highLightSrcX].getTileType();
+        boolean isPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
+
+        for (int i = 0; i < moves.length; i++)
+            for (Position position : moves[i])
+                if (checkOverLap(position)) {
+                    TileType targetTileType = getTileType(position);
+                    boolean targetColor = isBlack(targetTileType);
+
+                    if (targetTileType == TileType.BLANK && (!isPawn || i == 0)) {
                         trimmed.add(position);
-                    else if (
-                            tile.getTileType() == TileType.BLACK_KING ||
-                                    tile.getTileType() == TileType.LIGHT_KING)
-                        cut = true;
-                    else if (isSrcWhite != targetColor) {
+                    } else if (
+                            targetTileType == TileType.BLACK_KING ||
+                                    targetTileType == TileType.LIGHT_KING) {
+                        break;
+                    } else if (
+                            targetTileType != TileType.BLANK &&
+                                    isSrcWhite != targetColor && (!isPawn || i != 0)) {
                         trimmed.add(position);
-                        cut = true;
+                        break;
                     } else
-                        cut = true;
+                        break;
                 }
-        }
+
         return trimmed;
+    }
+
+    private boolean isBlack(TileType tileType) {
+        return tileType.isWhite();
+    }
+
+    private TileType getTileType(Position position) {
+        return gameBoard[position.getY()][position.getX()].getTileType();
     }
 
     public void initGame() {
