@@ -8,16 +8,19 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.GridLayout;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.example.chess.game.ActionTransmitter;
 import com.example.chess.game.ChessGame;
 import com.example.chess.game.ChessView;
+import com.example.chess.game.LogLine;
 import com.example.chess.game.OnPressListener;
 import com.example.chess.game.ResetOnPressListener;
 import com.example.chess.game.TileType;
@@ -27,6 +30,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
     private OnPressListener onPressListener;
     private ResetOnPressListener resetOnPressListener;
+    private RecyclerView recyclerView;
     private final CardView[][] views = new CardView[8][8];
 
     private int whiteColor;
@@ -65,6 +69,9 @@ public class MainActivity extends AppCompatActivity implements ChessView {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        recyclerView = findViewById(R.id.rv);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(new GameLogAdapter(LayoutInflater.from(this)));
         initColors();
 
         ActionTransmitterImpl actionTransmitter = new ActionTransmitterImpl();
@@ -74,11 +81,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         join.setOnClickListener(v -> actionTransmitter.connect(
                 "37.232.178.243",
                 8081,
-                () -> actionTransmitter.join(editText.getText().toString(), () -> {
-                            chessGame = new ChessGame(this, actionTransmitter);
-                            loadViews();
-                            chessGame.initGame();
-                        },
+                () -> actionTransmitter.join(editText.getText().toString(), () -> startNetworkGame(actionTransmitter),
                         () -> Toast.makeText(this, "Error join to server", Toast.LENGTH_SHORT).show()
                 ),
                 () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
@@ -90,9 +93,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
                 8081,
                 () -> actionTransmitter.createRoom(key -> {
                             editText.setText(key);
-                            chessGame = new ChessGame(this, actionTransmitter);
-                            loadViews();
-                            chessGame.initGame();
+                            startNetworkGame(actionTransmitter);
                         },
                         () -> Toast.makeText(this, "Error creating room", Toast.LENGTH_SHORT).show()
                 ),
@@ -100,6 +101,12 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         ));
 
 
+    }
+
+    void startNetworkGame(ActionTransmitter actionTransmitter) {
+        chessGame = new ChessGame(this, actionTransmitter);
+        loadViews();
+        chessGame.initGame();
     }
 
     @Override
@@ -129,5 +136,22 @@ public class MainActivity extends AppCompatActivity implements ChessView {
     @Override
     public void setResetOnPressListener(ResetOnPressListener resetOnPressListener) {
         this.resetOnPressListener = resetOnPressListener;
+    }
+
+    @Override
+    public void onNewLogLine(LogLine logLine) {
+        GameLogAdapter adapter = (GameLogAdapter) recyclerView.getAdapter();
+        if (adapter != null) {
+            adapter.addLine(logLine);
+            recyclerView.scrollToPosition(adapter.getItemCount() - 1);
+        }
+    }
+
+    @Override
+    public void cleanLog() {
+        GameLogAdapter adapter = (GameLogAdapter) recyclerView.getAdapter();
+        if (adapter != null) {
+            adapter.clean();
+        }
     }
 }
