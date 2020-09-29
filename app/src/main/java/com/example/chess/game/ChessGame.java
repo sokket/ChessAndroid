@@ -30,37 +30,36 @@ public class ChessGame {
         TileType tileType = gameBoard[highLightSrcY][highLightSrcX].getTileType();
         boolean isPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
 
-        for (int i = 0; i < moves.length; i++) {
-            for (int j = 0; j < moves[i].length; j++) {
-                if (checkOverLap(moves[i][j])) {
-                    Position position = moves[i][j];
-                    Tile tile = getTile(position);
-                    boolean targetColor = checkOnBlack(tile);
-                    if (tile.getTileType() == TileType.BLANK && (!isPawn || i == 0))
+        for (int i = 0; i < moves.length; i++)
+            for (Position position : moves[i])
+                if (checkOverLap(position)) {
+                    TileType targetTileType = getTileType(position);
+                    boolean targetColor = isBlack(targetTileType);
+
+                    if (targetTileType == TileType.BLANK && (!isPawn || i == 0)) {
                         trimmed.add(position);
-                    else if (
-                            tile.getTileType() == TileType.BLACK_KING ||
-                                    tile.getTileType() == TileType.LIGHT_KING) {
+                    } else if (
+                            targetTileType == TileType.BLACK_KING ||
+                                    targetTileType == TileType.LIGHT_KING) {
                         break;
                     } else if (
-                            tile.getTileType() != TileType.BLANK &&
+                            targetTileType != TileType.BLANK &&
                                     isSrcWhite != targetColor && (!isPawn || i != 0)) {
                         trimmed.add(position);
                         break;
                     } else
                         break;
                 }
-            }
-        }
+
         return trimmed;
     }
 
-    private boolean checkOnBlack(Tile tile) {
-        return tile.getTileType().isWhite();
+    private boolean isBlack(TileType tileType) {
+        return tileType.isWhite();
     }
 
-    private Tile getTile(Position position) {
-        return gameBoard[position.getY()][position.getX()];
+    private TileType getTileType(Position position) {
+        return gameBoard[position.getY()][position.getX()].getTileType();
     }
 
     public void initGame() {
