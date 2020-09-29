@@ -17,6 +17,21 @@ typedef struct Position {
     char yN;
 } Position;
 
+int send_all(int sock, void *data, int len) {
+    auto *data_ptr = (unsigned char *) data;
+    int num_sent;
+
+    while (len > 0) {
+        num_sent = send(sock, data_ptr, len, 0);
+        if (num_sent < 1)
+            return -1;
+        data_ptr += num_sent;
+        len -= num_sent;
+    }
+
+    return 0;
+}
+
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_example_chess_net_ChessClient_join(JNIEnv *env, jobject thiz, jstring key) {
     char type = 1;
@@ -62,6 +77,11 @@ Java_com_example_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
         return false;
 
     int err = connect(sock_fd, (const struct sockaddr *) &server, sizeof(server));
+    if (err != -1) {
+        char *proto = "CHESS_PROTO/1.0";
+        err = send_all(sock_fd, proto, strlen(proto));
+    }
+
     return err != -1;
 }
 
