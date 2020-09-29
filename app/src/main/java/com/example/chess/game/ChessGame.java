@@ -90,6 +90,7 @@ public class ChessGame {
                 currentTile.setTileType(targetTileType);
                 if (netMode)
                     actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
+                chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName()));
             } else {
                 clearHighLight();
                 highLightSrcX = x;
@@ -110,6 +111,7 @@ public class ChessGame {
                     TileType tileType = gameBoard[oY][oX].getTileType();
                     gameBoard[oY][oX].setTileType(TileType.BLANK);
                     gameBoard[nY][nX].setTileType(tileType);
+                    chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName()));
                 }
             });
     }
@@ -136,6 +138,7 @@ public class ChessGame {
                 gameBoard[i][j].setTileType(startingLineup(i, j));
                 gameBoard[i][j].setHighLighted(false);
             }
+        chessView.cleanLog();
     }
 
     void clearHighLight() {

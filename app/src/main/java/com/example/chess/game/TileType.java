@@ -4,19 +4,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum TileType {
-    LIGHT_BISHOP(TileType::bishopMoves, true),
-    LIGHT_KING(TileType::kingMoves, true),
-    LIGHT_KNIGHT(TileType::knightMoves, true),
-    LIGHT_PAWN(TileType::whitePawnMoves, true),
-    LIGHT_QUEEN(TileType::queenMoves, true),
-    LIGHT_ROOK(TileType::rookMoves, true),
-    BLANK(TileType::blankMoves, true),
-    BLACK_BISHOP(TileType::bishopMoves, false),
-    BLACK_KING(TileType::kingMoves, false),
-    BLACK_KNIGHT(TileType::knightMoves, false),
-    BLACK_PAWN(TileType::blackPawnMoves, false),
-    BLACK_QUEEN(TileType::queenMoves, false),
-    BLACK_ROOK(TileType::rookMoves, false);
+    LIGHT_BISHOP(TileType::bishopMoves, true, 'B'),
+    LIGHT_KING(TileType::kingMoves, true, 'K'),
+    LIGHT_KNIGHT(TileType::knightMoves, true, 'N'),
+    LIGHT_PAWN(TileType::whitePawnMoves, true, ' '),
+    LIGHT_QUEEN(TileType::queenMoves, true, 'Q'),
+    LIGHT_ROOK(TileType::rookMoves, true, 'R'),
+    BLANK(TileType::blankMoves, true, 'b'),
+    BLACK_BISHOP(TileType::bishopMoves, false, 'B'),
+    BLACK_KING(TileType::kingMoves, false, 'K'),
+    BLACK_KNIGHT(TileType::knightMoves, false, 'N'),
+    BLACK_PAWN(TileType::blackPawnMoves, false, ' '),
+    BLACK_QUEEN(TileType::queenMoves, false, 'Q'),
+    BLACK_ROOK(TileType::rookMoves, false, 'R');
 
     private static Position[][] blankMoves(int x, int y) {
         return new Position[][]{};
@@ -180,10 +180,16 @@ public enum TileType {
 
     private final MovesCalculator movesCalculator;
     private final boolean isWhite;
+    private final char name;
 
-    TileType(MovesCalculator movesCalculator, boolean isWhite) {
+    public char getName() {
+        return name;
+    }
+
+    TileType(MovesCalculator movesCalculator, boolean isWhite, char name) {
         this.movesCalculator = movesCalculator;
         this.isWhite = isWhite;
+        this.name = name;
     }
 
     public boolean isWhite() {
