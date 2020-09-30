@@ -14,6 +14,9 @@ public class ChessGame {
 
     private boolean whiteGame;
     private boolean whiteTurn = true;
+    private boolean enPassAnt = false;
+
+    private Position posForPassAnt = null;
 
     public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter, boolean whiteGame) {
         this.chessView = chessView;
@@ -32,6 +35,7 @@ public class ChessGame {
         ArrayList<Position> trimmed = new ArrayList<>();
         TileType tileType = gameBoard[highLightSrcY][highLightSrcX].getTileType();
         boolean isPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
+        enPassAnt = false;
 
         for (int i = 0; i < moves.length; i++)
             for (Position position : moves[i])
@@ -45,6 +49,14 @@ public class ChessGame {
                             targetTileType == TileType.BLACK_KING ||
                                     targetTileType == TileType.LIGHT_KING) {
                         break;
+                    } else if (isPawn && i != 0 && posForPassAnt != null &&
+                            Math.abs(position.getY() - posForPassAnt.getY()) == 1 &&
+                            position.getX() == posForPassAnt.getX() &&
+                            isSrcWhite != getTileType(posForPassAnt).isWhite()
+                    ) {
+                        trimmed.add(position);
+                        posForPassAnt = null;
+                        enPassAnt = true;
                     } else if (
                             targetTileType != TileType.BLANK &&
                                     isSrcWhite != targetColor && (!isPawn || i != 0)) {
@@ -98,6 +110,17 @@ public class ChessGame {
                 Tile highLightSourceTile = gameBoard[highLightSrcY][highLightSrcX];
                 TileType targetTileType = highLightSourceTile.getTileType();
                 highLightSourceTile.setTileType(TileType.BLANK);
+
+                if (Math.abs(highLightSrcY - y) == 2)
+                    posForPassAnt = new Position(x, y);
+
+                if (enPassAnt)
+                    if (y == 5)
+                        gameBoard[y - 1][x].setTileType(TileType.BLANK);
+                    else
+                        gameBoard[y + 1][x].setTileType(TileType.BLANK);
+                enPassAnt = false;
+
                 currentTile.setTileType(targetTileType);
 
                 if (netMode)
