@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         EditText keyPrompt = findViewById(R.id.key_prompt);
         join = findViewById(R.id.join_btn);
         join.setOnClickListener(v -> actionTransmitter.connect(
-                "37.232.178.243",
+                "oceancraft.ru",
                 8081,
                 () -> actionTransmitter.join(
                         keyPrompt.getText().toString(),
@@ -100,7 +100,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
         create = findViewById(R.id.create_btn);
         create.setOnClickListener(v -> actionTransmitter.connect(
-                "37.232.178.243",
+                "oceancraft.ru",
                 8081,
                 () -> actionTransmitter.createRoom(key -> {
                             Snackbar.make(findViewById(R.id.mainView), "Room created: " + key, Snackbar.LENGTH_LONG)

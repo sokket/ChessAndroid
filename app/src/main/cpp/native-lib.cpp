@@ -64,24 +64,39 @@ extern "C" JNIEXPORT jboolean JNICALL
 Java_com_example_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
                                                jstring server_address, jint port) {
 
-    struct sockaddr_in server{};
-    bzero(&server, sizeof(server));
-    server.sin_family = AF_INET;
-    server.sin_port = htons(port);
     jboolean isCopy = true;
     const char *addr = env->GetStringUTFChars(server_address, &isCopy);
-    inet_pton(AF_INET, addr, &server.sin_addr);
 
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd == -1)
+    struct addrinfo hints{}, *serv, *rp;
+    bzero(&hints, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_protocol = IPPROTO_TCP;
+
+    int ret = getaddrinfo(addr, std::to_string(port).c_str(), &hints, &serv);
+    if (ret != 0) {
+        return false;
+    }
+
+    for (rp = serv; rp != nullptr; rp = rp->ai_next) {
+        sock_fd = socket(rp->ai_family, rp->ai_socktype,
+                         rp->ai_protocol);
+        if (sock_fd == -1)
+            continue;
+
+        if (connect(sock_fd, rp->ai_addr, rp->ai_addrlen) != -1)
+            break;                  /* Success */
+
+        close(sock_fd);
+    }
+
+    if (rp == nullptr)
         return false;
 
-    int err = connect(sock_fd, (const struct sockaddr *) &server, sizeof(server));
-    if (err != -1) {
-        std::string proto_str = "CHESS_PROTO/1.0";
-        const char *proto = proto_str.c_str();
-        err = send_all(sock_fd, proto, strlen(proto));
-    }
+    freeaddrinfo(serv);
+
+    std::string proto = "CHESS_PROTO/1.0";
+    int err = send_all(sock_fd, proto.c_str(), proto.length());
 
     return err != -1;
 }
