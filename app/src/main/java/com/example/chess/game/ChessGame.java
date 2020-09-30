@@ -12,17 +12,20 @@ public class ChessGame {
     private int highLightSrcX;
     private int highLightSrcY;
 
+    private boolean whiteGame;
     private boolean whiteTurn = true;
 
-    public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter) {
+    public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter, boolean whiteGame) {
         this.chessView = chessView;
         this.actionTransmitter = actionTransmitter;
-        netMode = true;
+        this.whiteGame = whiteGame;
+        this.netMode = true;
     }
 
     public ChessGame(ChessView chessView) {
         this.chessView = chessView;
-        netMode = false;
+        this.whiteGame = true;
+        this.netMode = false;
     }
 
     private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
@@ -62,6 +65,14 @@ public class ChessGame {
         return gameBoard[position.getY()][position.getX()].getTileType();
     }
 
+    private void syncWithView() {
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 8; j++) {
+                chessView.onChangeTile(i, j, gameBoard[j][i].getTileType());
+                gameBoard[i][j].setHighLighted(false);
+            }
+    }
+
     public void initGame() {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
@@ -82,25 +93,28 @@ public class ChessGame {
 
         chessView.setOnPressListener((x, y) -> {
             Tile currentTile = gameBoard[y][x];
-            if (currentTile.isLighted()) {
+            if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
                 clearHighLight();
                 Tile highLightSourceTile = gameBoard[highLightSrcY][highLightSrcX];
                 TileType targetTileType = highLightSourceTile.getTileType();
                 highLightSourceTile.setTileType(TileType.BLANK);
                 currentTile.setTileType(targetTileType);
+
                 if (netMode)
                     actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
+                else {
+                    chessView.onMoveFinished(!whiteTurn);
+                    syncWithView();
+                }
+
                 chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName()));
+                whiteTurn = !whiteTurn;
             } else {
                 clearHighLight();
                 highLightSrcX = x;
                 highLightSrcY = y;
 
-                TileType currentTileType = currentTile.getTileType();
-                Position[][] moves = currentTileType.getMovesFor(x, y);
-                trimRays(currentTileType.isWhite(), moves).forEach(it ->
-                        gameBoard[it.getY()][it.getX()].setHighLighted(true)
-                );
+                drawHighLight(x, y);
             }
         });
         chessView.setResetOnPressListener(this::reset);
@@ -112,8 +126,23 @@ public class ChessGame {
                     gameBoard[oY][oX].setTileType(TileType.BLANK);
                     gameBoard[nY][nX].setTileType(tileType);
                     chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName()));
+
+                    clearHighLight();
+                    drawHighLight(highLightSrcX, highLightSrcY);
+
+                    whiteTurn = !whiteTurn;
                 }
             });
+    }
+
+    void drawHighLight(int x, int y) {
+        TileType currentTileType = gameBoard[y][x].getTileType();
+        if (netMode ? currentTileType.isWhite() == whiteGame : currentTileType.isWhite() == whiteTurn) {
+            Position[][] moves = currentTileType.getMovesFor(x, y);
+            trimRays(currentTileType.isWhite(), moves).forEach(it ->
+                    gameBoard[it.getY()][it.getX()].setHighLighted(true)
+            );
+        }
     }
 
     TileType startingLineup(int i, int j) {
@@ -139,6 +168,7 @@ public class ChessGame {
                 gameBoard[i][j].setHighLighted(false);
             }
         chessView.cleanLog();
+        whiteTurn = true;
     }
 
     void clearHighLight() {

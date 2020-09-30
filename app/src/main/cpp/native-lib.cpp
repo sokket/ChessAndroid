@@ -17,7 +17,7 @@ typedef struct Position {
     char yN;
 } Position;
 
-int send_all(int sock, void *data, int len) {
+int send_all(int sock, const void *data, int len) {
     auto *data_ptr = (unsigned char *) data;
     int num_sent;
 
@@ -78,7 +78,8 @@ Java_com_example_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
 
     int err = connect(sock_fd, (const struct sockaddr *) &server, sizeof(server));
     if (err != -1) {
-        char *proto = "CHESS_PROTO/1.0";
+        std::string proto_str = "CHESS_PROTO/1.0";
+        const char *proto = proto_str.c_str();
         err = send_all(sock_fd, proto, strlen(proto));
     }
 

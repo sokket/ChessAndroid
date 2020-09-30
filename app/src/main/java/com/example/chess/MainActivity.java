@@ -1,5 +1,8 @@
 package com.example.chess;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -25,6 +28,7 @@ import com.example.chess.game.OnPressListener;
 import com.example.chess.game.ResetOnPressListener;
 import com.example.chess.game.TileType;
 import com.example.chess.net.ActionTransmitterImpl;
+import com.google.android.material.snackbar.Snackbar;
 
 public class MainActivity extends AppCompatActivity implements ChessView {
 
@@ -39,19 +43,24 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
     ChessGame chessGame;
 
+    private Button join;
+    private Button create;
+
     private void initColors() {
         whiteColor = ContextCompat.getColor(this, R.color.white);
         blackColor = ContextCompat.getColor(this, R.color.black);
         highLightColor = ContextCompat.getColor(this, R.color.purple_200);
     }
 
-    private void loadViews() {
+    private void loadViews(boolean whiteGame) {
         GridLayout grid = findViewById(R.id.grid);
+        grid.removeAllViewsInLayout();
+
         Button button = findViewById(R.id.button);
         LayoutInflater layoutInflater = LayoutInflater.from(this);
 
-        for (int i = 0; i < 8; i++)
-            for (int j = 0; j < 8; j++) {
+        for (int i = whiteGame ? 0 : 7; whiteGame ? i < 8 : i >= 0; i += whiteGame ? 1 : -1)
+            for (int j = whiteGame ? 0 : 7; whiteGame ? j < 8 : j >= 0; j += whiteGame ? 1 : -1) {
                 CardView tileView = (CardView) layoutInflater.inflate(R.layout.tile, grid, false);
                 grid.addView(tileView);
 
@@ -76,24 +85,32 @@ public class MainActivity extends AppCompatActivity implements ChessView {
 
         ActionTransmitterImpl actionTransmitter = new ActionTransmitterImpl();
 
-        EditText editText = findViewById(R.id.key_prompt);
-        Button join = findViewById(R.id.join_btn);
+        EditText keyPrompt = findViewById(R.id.key_prompt);
+        join = findViewById(R.id.join_btn);
         join.setOnClickListener(v -> actionTransmitter.connect(
                 "37.232.178.243",
                 8081,
-                () -> actionTransmitter.join(editText.getText().toString(), () -> startNetworkGame(actionTransmitter),
+                () -> actionTransmitter.join(
+                        keyPrompt.getText().toString(),
+                        () -> startNetworkGame(actionTransmitter, false),
                         () -> Toast.makeText(this, "Error join to server", Toast.LENGTH_SHORT).show()
                 ),
                 () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
         ));
 
-        Button create = findViewById(R.id.create_btn);
+        create = findViewById(R.id.create_btn);
         create.setOnClickListener(v -> actionTransmitter.connect(
                 "37.232.178.243",
                 8081,
                 () -> actionTransmitter.createRoom(key -> {
-                            editText.setText(key);
-                            startNetworkGame(actionTransmitter);
+                            Snackbar.make(findViewById(R.id.mainView), "Room created: " + key, Snackbar.LENGTH_LONG)
+                                    .setAction("COPY", sv -> {
+                                        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                                        ClipData clip = ClipData.newPlainText("ChessGame", key);
+                                        clipboard.setPrimaryClip(clip);
+                                    })
+                                    .show();
+                            startNetworkGame(actionTransmitter, true);
                         },
                         () -> Toast.makeText(this, "Error creating room", Toast.LENGTH_SHORT).show()
                 ),
@@ -101,12 +118,24 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         ));
 
 
+        Button offlineButton = findViewById(R.id.offline_btn);
+        offlineButton.setOnClickListener(v -> startOfflineGame());
+
     }
 
-    void startNetworkGame(ActionTransmitter actionTransmitter) {
-        chessGame = new ChessGame(this, actionTransmitter);
-        loadViews();
+    void startOfflineGame() {
+        chessGame = new ChessGame(this);
+        loadViews(true);
         chessGame.initGame();
+    }
+
+    void startNetworkGame(ActionTransmitter actionTransmitter, boolean white) {
+        chessGame = new ChessGame(this, actionTransmitter, white);
+        loadViews(white);
+        chessGame.initGame();
+        join.setVisibility(View.INVISIBLE);
+        create.setVisibility(View.INVISIBLE);
+        findViewById(R.id.key_prompt_layout).setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -153,5 +182,10 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         if (adapter != null) {
             adapter.clean();
         }
+    }
+
+    @Override
+    public void onMoveFinished(boolean whiteTurn) {
+        loadViews(whiteTurn);
     }
 }

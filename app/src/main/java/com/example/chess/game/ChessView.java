@@ -12,4 +12,6 @@ public interface ChessView {
     void onNewLogLine(LogLine logLine);
 
     void cleanLog();
+
+    void onMoveFinished(boolean whiteTurn);
 }
