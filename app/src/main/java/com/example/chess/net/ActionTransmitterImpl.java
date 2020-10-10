@@ -4,7 +4,10 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.example.chess.game.ActionTransmitter;
+import com.example.chess.game.CastlingListener;
+import com.example.chess.game.EnPassantListener;
 import com.example.chess.game.MoveListener;
+import com.example.chess.game.Position;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -80,5 +83,25 @@ public class ActionTransmitterImpl implements ActionTransmitter {
     @Override
     public void makeMove(int xOld, int yOld, int xNew, int yNew) {
         runOnThreadPool(() -> chessClient.move(xOld, yOld, xNew, yNew));
+    }
+
+    @Override
+    public void enPassant(Position deadPawn) {
+
+    }
+
+    @Override
+    public void castling(boolean longCastling) {
+
+    }
+
+    @Override
+    public void setOnEnPassantListener(EnPassantListener enPassantListener) {
+
+    }
+
+    @Override
+    public void setOnCastlingListener(CastlingListener castlingListener) {
+
     }
 }
