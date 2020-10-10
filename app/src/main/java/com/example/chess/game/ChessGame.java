@@ -14,11 +14,18 @@ public class ChessGame {
 
     private boolean whiteGame;
     private boolean whiteTurn = true;
-    private boolean enPassAnt = false;
+    private boolean enPassant = false;
+    private boolean castling = false;
+    private boolean longCastling = false;
 
-    private Position posForPassAnt = null;
+    private Position posForEnPassant = null;
     private int check = 0;
     private int checkmate = 1;
+
+    private boolean allowedCastlingForLWR = true;
+    private boolean allowedCastlingForLBR = true;
+    private boolean allowedCastlingForRWR = true;
+    private boolean allowedCastlingForRBR = true;
 
     public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter, boolean whiteGame) {
         this.chessView = chessView;
@@ -36,8 +43,14 @@ public class ChessGame {
     private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
         ArrayList<Position> trimmed = new ArrayList<>();
         TileType tileType = gameBoard[highLightSrcY][highLightSrcX].getTileType();
-        boolean isPawn = tileType == TileType.LIGHT_PAWN || tileType == TileType.BLACK_PAWN;
-        enPassAnt = false;
+
+        boolean isPawn = tileType == TileType.WHITE_PAWN || tileType == TileType.BLACK_PAWN;
+        boolean isKing = tileType == TileType.WHITE_KING || tileType == TileType.BLACK_KING;
+
+        boolean lastTrimForCastlingAdd = false;
+
+        enPassant = false;
+        castling = false;
 
         for (int i = 0; i < moves.length; i++)
             for (Position position : moves[i])
@@ -45,24 +58,50 @@ public class ChessGame {
                     TileType targetTileType = getTileType(position);
                     boolean targetColor = isBlack(targetTileType);
 
-                    if (targetTileType == TileType.BLANK && (!isPawn || i == 0)) {
+                    if (targetTileType == TileType.BLANK && (!isPawn || i == 0) && !isKing) {
                         trimmed.add(position);
                     } else if (
                             targetTileType == TileType.BLACK_KING ||
-                                    targetTileType == TileType.LIGHT_KING) {
+                                    targetTileType == TileType.WHITE_KING) {
                         if (isSrcWhite != targetColor) {
                             check++;
                             System.out.println("CHECK");
+                            chessView.onCheck();
                         }
                         break;
-                    } else if (isPawn && i != 0 && posForPassAnt != null &&
-                            Math.abs(position.getY() - posForPassAnt.getY()) == 1 &&
-                            position.getX() == posForPassAnt.getX() &&
-                            isSrcWhite != getTileType(posForPassAnt).isWhite()
+                    } else if (isPawn && i != 0 && posForEnPassant != null &&
+                            Math.abs(position.getY() - posForEnPassant.getY()) == 1 &&
+                            position.getX() == posForEnPassant.getX() &&
+                            isSrcWhite != getTileType(posForEnPassant).isWhite()
                     ) {
                         trimmed.add(position);
-                        posForPassAnt = null;
-                        enPassAnt = true;
+                        posForEnPassant = null;
+                        enPassant = true;
+                    } else if (isKing && (i != 6 && i != 7) && targetTileType == TileType.BLANK) {
+                        trimmed.add(position);
+                    } else if (isKing && i == 6 && targetTileType == TileType.BLANK) {
+                        if ((allowedCastlingForRWR && whiteTurn) || (allowedCastlingForLBR && !whiteTurn)) {
+                            trimmed.add(position);
+                            lastTrimForCastlingAdd = true;
+                            castling = true;
+                        } else {
+                            trimmed.add(position);
+                            break;
+                        }
+                    } else if (isKing && targetTileType == TileType.BLANK) {
+                        if ((allowedCastlingForLWR && whiteTurn) || (allowedCastlingForRBR && !whiteTurn)) {
+                            trimmed.add(position);
+                            lastTrimForCastlingAdd = true;
+                            castling = true;
+                        } else {
+                            trimmed.add(position);
+                            break;
+                        }
+                    } else if (isKing && i == 7) {
+                        if (lastTrimForCastlingAdd) {
+                            trimmed.remove(trimmed.size() - 1);
+                            break;
+                        }
                     } else if (
                             targetTileType != TileType.BLANK &&
                                     isSrcWhite != targetColor && (!isPawn || i != 0)) {
@@ -115,36 +154,54 @@ public class ChessGame {
 
         chessView.setOnPressListener((x, y) -> {
             Tile currentTile = gameBoard[y][x];
-            if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn) && !(checkmate == 2)) {
+            if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
                 clearHighLight();
                 Tile highLightSourceTile = gameBoard[highLightSrcY][highLightSrcX];
                 TileType targetTileType = highLightSourceTile.getTileType();
                 highLightSourceTile.setTileType(TileType.BLANK);
 
+                if (whiteTurn && highLightSrcX > x && castling)
+                    longCastling = true;
+                else if (highLightSrcX > x && castling)
+                    longCastling = true;
+
                 if (Math.abs(highLightSrcY - y) == 2 &&
                         (targetTileType == TileType.BLACK_PAWN ||
-                                targetTileType == TileType.LIGHT_PAWN))
-                    posForPassAnt = new Position(x, y);
-                else posForPassAnt = null;
+                                targetTileType == TileType.WHITE_PAWN))
+                    posForEnPassant = new Position(x, y);
+                else posForEnPassant = null;
 
-                if (enPassAnt)
+                checkOnCastling(targetTileType);
+
+                if (enPassant)
                     if (y == 5)
                         gameBoard[y - 1][x].setTileType(TileType.BLANK);
                     else
                         gameBoard[y + 1][x].setTileType(TileType.BLANK);
-                enPassAnt = false;
+                enPassant = false;
+
+                if (castling)
+                    if (longCastling) {
+                        TileType rook = gameBoard[y][x - 2].getTileType();
+                        gameBoard[y][x - 2].setTileType(TileType.BLANK);
+                        gameBoard[y][x + 1].setTileType(rook);
+                    } else {
+                        TileType rook = gameBoard[y][x + 1].getTileType();
+                        gameBoard[y][x + 1].setTileType(TileType.BLANK);
+                        gameBoard[y][x - 1].setTileType(rook);
+                    }
+
 
                 currentTile.setTileType(targetTileType);
-                checkForCheck();
-                if (checkmate > 1) System.out.println("CHECKMATE");
+                //TODO:checkForCheck();
+                if (checkmate > 1) {
+                    onCheckmate();
+                }
 
                 if (netMode) {
                     actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
-                    if (enPassAnt)
-                        if (y == 5)
-                            actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y - 1);
-                        else
-                            actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y + 1);
+                    if (enPassant)
+                        actionTransmitter.enPassant(posForEnPassant);
                 } else {
                     chessView.onMoveFinished(!whiteTurn);
                     syncWithView();
@@ -152,13 +209,14 @@ public class ChessGame {
 
                 chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName(), check != 0, checkmate == 2));
                 whiteTurn = !whiteTurn;
-            } else {
+            } else if (checkmate != 2) {
                 clearHighLight();
                 highLightSrcX = x;
                 highLightSrcY = y;
 
                 drawHighLight(x, y);
             }
+
         });
         chessView.setResetOnPressListener(this::reset);
 
@@ -169,14 +227,16 @@ public class ChessGame {
 
                     if (Math.abs(oY - nY) == 2 &&
                             (tileType == TileType.BLACK_PAWN ||
-                                    tileType == TileType.LIGHT_PAWN))
-                        posForPassAnt = new Position(nX, nY);
-                    else posForPassAnt = null;
+                                    tileType == TileType.WHITE_PAWN))
+                        posForEnPassant = new Position(nX, nY);
+                    else posForEnPassant = null;
 
                     gameBoard[oY][oX].setTileType(TileType.BLANK);
                     gameBoard[nY][nX].setTileType(tileType);
-                    checkForCheck();
-                    if (checkmate > 1) System.out.println("CHECKMATE");
+                    //TODO:checkForCheck();
+                    if (checkmate > 1) {
+                        onCheckmate();
+                    }
                     chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName(), check != 0, checkmate == 2));
                     clearHighLight();
                     drawHighLight(highLightSrcX, highLightSrcY);
@@ -210,17 +270,17 @@ public class ChessGame {
 
     TileType startingLineup(int i, int j) {
         if (i == 1) return TileType.BLACK_PAWN;
-        else if (i == 6) return TileType.LIGHT_PAWN;
+        else if (i == 6) return TileType.WHITE_PAWN;
         else if (i == 0 && (j == 0 || j == 7)) return TileType.BLACK_ROOK;
-        else if (i == 7 && (j == 0 || j == 7)) return TileType.LIGHT_ROOK;
+        else if (i == 7 && (j == 0 || j == 7)) return TileType.WHITE_ROOK;
         else if (i == 0 && (j == 1 || j == 6)) return TileType.BLACK_KNIGHT;
-        else if (i == 7 && (j == 1 || j == 6)) return TileType.LIGHT_KNIGHT;
+        else if (i == 7 && (j == 1 || j == 6)) return TileType.WHITE_KNIGHT;
         else if (i == 0 && (j == 2 || j == 5)) return TileType.BLACK_BISHOP;
-        else if (i == 7 && (j == 2 || j == 5)) return TileType.LIGHT_BISHOP;
+        else if (i == 7 && (j == 2 || j == 5)) return TileType.WHITE_BISHOP;
         else if (i == 0 && j == 3) return TileType.BLACK_QUEEN;
-        else if (i == 7 && j == 3) return TileType.LIGHT_QUEEN;
+        else if (i == 7 && j == 3) return TileType.WHITE_QUEEN;
         else if (i == 0 && j == 4) return TileType.BLACK_KING;
-        else if (i == 7 && j == 4) return TileType.LIGHT_KING;
+        else if (i == 7 && j == 4) return TileType.WHITE_KING;
         return TileType.BLANK;
     }
 
@@ -248,4 +308,33 @@ public class ChessGame {
         return x >= 0 && x < 8 && y >= 0 && y < 8;
     }
 
+    void onCheckmate() {
+        System.out.println("CHECKMATE");
+        chessView.onCheckmate();
+        clearHighLight();
+    }
+
+    void checkOnCastling(TileType targetTileType) {
+        if (targetTileType == TileType.BLACK_ROOK ||
+                targetTileType == TileType.WHITE_ROOK ||
+                targetTileType == TileType.WHITE_KING ||
+                targetTileType == TileType.BLACK_KING) {
+            if (highLightSrcY == 7 && highLightSrcX == 7)
+                allowedCastlingForRWR = false;
+            else if (highLightSrcY == 7 && highLightSrcX == 0)
+                allowedCastlingForLWR = false;
+            else if (highLightSrcY == 0 && highLightSrcX == 7)
+                allowedCastlingForLBR = false;
+            else if (highLightSrcY == 0 && highLightSrcX == 0)
+                allowedCastlingForRBR = false;
+            else if (targetTileType == TileType.WHITE_KING) {
+                allowedCastlingForLWR = false;
+                allowedCastlingForRWR = false;
+            } else {
+                allowedCastlingForLBR = false;
+                allowedCastlingForRBR = false;
+            }
+
+        }
+    }
 }

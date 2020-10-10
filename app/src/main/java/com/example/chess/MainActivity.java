@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity implements ChessView {
     private Button join;
     private Button create;
 
+
     private void initColors() {
         whiteColor = ContextCompat.getColor(this, R.color.white);
         blackColor = ContextCompat.getColor(this, R.color.black);
@@ -117,9 +118,9 @@ public class MainActivity extends AppCompatActivity implements ChessView {
                 () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
         ));
 
-
         Button offlineButton = findViewById(R.id.offline_btn);
         offlineButton.setOnClickListener(v -> startOfflineGame());
+
 
     }
 
@@ -136,6 +137,11 @@ public class MainActivity extends AppCompatActivity implements ChessView {
         join.setVisibility(View.INVISIBLE);
         create.setVisibility(View.INVISIBLE);
         findViewById(R.id.key_prompt_layout).setVisibility(View.INVISIBLE);
+    }
+
+    void showSnakeBar(String str) {
+        Snackbar.make(findViewById(R.id.mainView), str, Snackbar.LENGTH_LONG)
+                .show();
     }
 
     @Override
@@ -188,4 +194,15 @@ public class MainActivity extends AppCompatActivity implements ChessView {
     public void onMoveFinished(boolean whiteTurn) {
         loadViews(whiteTurn);
     }
+
+    @Override
+    public void onCheck() {
+        showSnakeBar("CHECK");
+    }
+
+    @Override
+    public void onCheckmate() {
+        showSnakeBar("CHECKMATE");
+    }
+
 }
