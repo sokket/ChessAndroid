@@ -17,6 +17,8 @@ public class ChessGame {
     private boolean enPassAnt = false;
 
     private Position posForPassAnt = null;
+    private int check = 0;
+    private int checkmate = 1;
 
     public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter, boolean whiteGame) {
         this.chessView = chessView;
@@ -48,6 +50,10 @@ public class ChessGame {
                     } else if (
                             targetTileType == TileType.BLACK_KING ||
                                     targetTileType == TileType.LIGHT_KING) {
+                        if (isSrcWhite != targetColor) {
+                            check++;
+                            System.out.println("CHECK");
+                        }
                         break;
                     } else if (isPawn && i != 0 && posForPassAnt != null &&
                             Math.abs(position.getY() - posForPassAnt.getY()) == 1 &&
@@ -68,6 +74,10 @@ public class ChessGame {
 
         return trimmed;
     }
+
+    /*private List<Position> trimRaysForDelCheck () {
+
+    }*/
 
     private boolean isBlack(TileType tileType) {
         return tileType.isWhite();
@@ -105,14 +115,17 @@ public class ChessGame {
 
         chessView.setOnPressListener((x, y) -> {
             Tile currentTile = gameBoard[y][x];
-            if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
+            if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn) && !(checkmate == 2)) {
                 clearHighLight();
                 Tile highLightSourceTile = gameBoard[highLightSrcY][highLightSrcX];
                 TileType targetTileType = highLightSourceTile.getTileType();
                 highLightSourceTile.setTileType(TileType.BLANK);
 
-                if (Math.abs(highLightSrcY - y) == 2)
+                if (Math.abs(highLightSrcY - y) == 2 &&
+                        (targetTileType == TileType.BLACK_PAWN ||
+                                targetTileType == TileType.LIGHT_PAWN))
                     posForPassAnt = new Position(x, y);
+                else posForPassAnt = null;
 
                 if (enPassAnt)
                     if (y == 5)
@@ -122,15 +135,22 @@ public class ChessGame {
                 enPassAnt = false;
 
                 currentTile.setTileType(targetTileType);
+                checkForCheck();
+                if (checkmate > 1) System.out.println("CHECKMATE");
 
-                if (netMode)
+                if (netMode) {
                     actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
-                else {
+                    if (enPassAnt)
+                        if (y == 5)
+                            actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y - 1);
+                        else
+                            actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y + 1);
+                } else {
                     chessView.onMoveFinished(!whiteTurn);
                     syncWithView();
                 }
 
-                chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName()));
+                chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName(), check != 0, checkmate == 2));
                 whiteTurn = !whiteTurn;
             } else {
                 clearHighLight();
@@ -146,10 +166,18 @@ public class ChessGame {
             actionTransmitter.setOnMakeMoveListener((oX, oY, nX, nY) -> {
                 if (checkOverLap(new Position(oX, oY)) && checkOverLap(new Position(nX, nY))) {
                     TileType tileType = gameBoard[oY][oX].getTileType();
+
+                    if (Math.abs(oY - nY) == 2 &&
+                            (tileType == TileType.BLACK_PAWN ||
+                                    tileType == TileType.LIGHT_PAWN))
+                        posForPassAnt = new Position(nX, nY);
+                    else posForPassAnt = null;
+
                     gameBoard[oY][oX].setTileType(TileType.BLANK);
                     gameBoard[nY][nX].setTileType(tileType);
-                    chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName()));
-
+                    checkForCheck();
+                    if (checkmate > 1) System.out.println("CHECKMATE");
+                    chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName(), check != 0, checkmate == 2));
                     clearHighLight();
                     drawHighLight(highLightSrcX, highLightSrcY);
 
@@ -166,6 +194,18 @@ public class ChessGame {
                     gameBoard[it.getY()][it.getX()].setHighLighted(true)
             );
         }
+    }
+
+    void checkForCheck() {
+        check = 0;
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 8; j++) {
+                TileType currentTileType = gameBoard[j][i].getTileType();
+                Position[][] moves = currentTileType.getMovesFor(i, j);
+                trimRays(currentTileType.isWhite(), moves);
+            }
+        checkmate += check != 0 ? 1 : checkmate * -1;
+        System.out.println(checkmate);
     }
 
     TileType startingLineup(int i, int j) {
@@ -192,6 +232,8 @@ public class ChessGame {
             }
         chessView.cleanLog();
         whiteTurn = true;
+        checkmate = 0;
+        check = 0;
     }
 
     void clearHighLight() {
