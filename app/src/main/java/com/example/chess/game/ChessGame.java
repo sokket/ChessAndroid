@@ -77,15 +77,13 @@ public class ChessGame {
                         trimmed.add(position);
                         posForEnPassant = null;
                         enPassant = true;
-                    } else if (isKing && (i != 6 && i != 7) && targetTileType == TileType.BLANK) {
+                    } else if (isKing && (i != 8 && i != 9) && targetTileType == TileType.BLANK) {
                         trimmed.add(position);
-                    } else if (isKing && i == 6 && targetTileType == TileType.BLANK) {
+                    } else if (isKing && i == 8 && targetTileType == TileType.BLANK) {
                         if ((allowedCastlingForRWR && whiteTurn) || (allowedCastlingForLBR && !whiteTurn)) {
                             trimmed.add(position);
-                            lastTrimForCastlingAdd = true;
                             castling = true;
                         } else {
-                            trimmed.add(position);
                             break;
                         }
                     } else if (isKing && targetTileType == TileType.BLANK) {
@@ -94,14 +92,13 @@ public class ChessGame {
                             lastTrimForCastlingAdd = true;
                             castling = true;
                         } else {
-                            trimmed.add(position);
                             break;
                         }
-                    } else if (isKing && i == 7) {
+                    } else if (isKing && i == 9) {
                         if (lastTrimForCastlingAdd) {
                             trimmed.remove(trimmed.size() - 1);
-                            break;
                         }
+                        break;
                     } else if (
                             targetTileType != TileType.BLANK &&
                                     isSrcWhite != targetColor && (!isPawn || i != 0)) {
@@ -193,7 +190,7 @@ public class ChessGame {
 
 
                 currentTile.setTileType(targetTileType);
-                //TODO:checkForCheck();
+                checkForCheck();
                 if (checkmate > 1) {
                     onCheckmate();
                 }
@@ -207,7 +204,7 @@ public class ChessGame {
                     syncWithView();
                 }
 
-                chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName(), check != 0, checkmate == 2));
+                chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName(), check != 0, checkmate == 2, castling, longCastling));
                 whiteTurn = !whiteTurn;
             } else if (checkmate != 2) {
                 clearHighLight();
@@ -233,11 +230,11 @@ public class ChessGame {
 
                     gameBoard[oY][oX].setTileType(TileType.BLANK);
                     gameBoard[nY][nX].setTileType(tileType);
-                    //TODO:checkForCheck();
+                    checkForCheck();
                     if (checkmate > 1) {
                         onCheckmate();
                     }
-                    chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName(), check != 0, checkmate == 2));
+                    chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName(), check != 0, checkmate == 2, castling, longCastling));
                     clearHighLight();
                     drawHighLight(highLightSrcX, highLightSrcY);
 

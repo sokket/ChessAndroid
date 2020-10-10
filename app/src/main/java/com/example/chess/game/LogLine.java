@@ -37,12 +37,12 @@ public class LogLine {
         return castling;
     }
 
-    public LogLine(boolean castling, boolean longCastling) {
+    public LogLine(int xOld, int yOld, boolean castling, boolean longCastling) {
         this.castling = castling;
         this.longCastling = longCastling;
     }
 
-    public LogLine(int xOld, int yOld, int xNew, int yNew, char name, boolean check, boolean checkmate) {
+    public LogLine(int xOld, int yOld, int xNew, int yNew, char name, boolean check, boolean checkmate, boolean castling, boolean longCastling) {
         this.xOld = xOld;
         this.yOld = yOld;
         this.xNew = xNew;
@@ -50,6 +50,8 @@ public class LogLine {
         this.name = name;
         this.check = check;
         this.checkmate = checkmate;
+        this.castling = castling;
+        this.longCastling = longCastling;
     }
 
 

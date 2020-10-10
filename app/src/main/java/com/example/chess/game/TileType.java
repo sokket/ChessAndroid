@@ -84,19 +84,20 @@ public enum TileType {
                 new Position[]{new Position(x - 1, y - 1)},
                 new Position[]{new Position(x + 1, y + 1)},
                 new Position[]{new Position(x - 1, y + 1)},
-                y == 7 || y == 0 ? new Position[]{
-                        new Position(x + 1, y),
-                        new Position(x + 2, y)
-                } : new Position[]{
-                        new Position(x + 1, y)
-                },
-                y == 7 || y == 0 ? new Position[]{
-                        new Position(x - 1, y),
-                        new Position(x - 2, y),
-                        new Position(x - 3, y)
-                } : new Position[]{
-                        new Position(x - 1, y)
-                }
+                new Position[]{new Position(x + 1, y)},
+                new Position[]{new Position(x - 1, y)},
+                y == 0 || y == 7 ?
+                        new Position[]{
+                                new Position(x + 1, y),
+                                new Position(x + 2, y)
+                        } : new Position[]{new Position(-1, -1)},
+                y == 0 || y == 7 ?
+                        new Position[]{
+                                new Position(x - 1, y),
+                                new Position(x - 2, y),
+                                new Position(x - 3, y),
+                                new Position(x - 4, y)
+                        } : new Position[]{new Position(-1, -1)}
         };
     }
 
