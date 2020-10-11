@@ -1,5 +1,5 @@
 package com.example.chess.game;
 
 public interface EnPassantListener {
-    void onCastling();
+    void onEnPassant(int x, int y);
 }

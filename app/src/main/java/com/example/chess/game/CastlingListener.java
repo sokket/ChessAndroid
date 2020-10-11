@@ -1,5 +1,5 @@
 package com.example.chess.game;
 
 public interface CastlingListener {
-    void onCastling();
+    void onCastling(boolean longCastling);
 }

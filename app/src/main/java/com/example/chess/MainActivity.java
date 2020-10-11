@@ -16,6 +16,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentTransaction;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,162 +32,68 @@ import com.example.chess.game.TileType;
 import com.example.chess.net.ActionTransmitterImpl;
 import com.google.android.material.snackbar.Snackbar;
 
-public class MainActivity extends AppCompatActivity implements ChessView {
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-    private OnPressListener onPressListener;
-    private ResetOnPressListener resetOnPressListener;
-    private RecyclerView recyclerView;
-    private final CardView[][] views = new CardView[8][8];
+import javax.inject.Inject;
 
-    private int whiteColor;
-    private int blackColor;
-    private int highLightColor;
+import ru.terrakok.cicerone.Navigator;
+import ru.terrakok.cicerone.NavigatorHolder;
+import ru.terrakok.cicerone.Router;
+import ru.terrakok.cicerone.android.support.SupportAppNavigator;
+import ru.terrakok.cicerone.commands.Command;
 
-    ChessGame chessGame;
+public class MainActivity extends AppCompatActivity {
 
-    private Button join;
-    private Button create;
+    @Inject
+    Router router;
 
-    private void initColors() {
-        whiteColor = ContextCompat.getColor(this, R.color.white);
-        blackColor = ContextCompat.getColor(this, R.color.black);
-        highLightColor = ContextCompat.getColor(this, R.color.purple_200);
-    }
+    @Inject
+    NavigatorHolder navigatorHolder;
 
-    private void loadViews(boolean whiteGame) {
-        GridLayout grid = findViewById(R.id.grid);
-        grid.removeAllViewsInLayout();
-
-        Button button = findViewById(R.id.button);
-        LayoutInflater layoutInflater = LayoutInflater.from(this);
-
-        for (int i = whiteGame ? 0 : 7; whiteGame ? i < 8 : i >= 0; i += whiteGame ? 1 : -1)
-            for (int j = whiteGame ? 0 : 7; whiteGame ? j < 8 : j >= 0; j += whiteGame ? 1 : -1) {
-                CardView tileView = (CardView) layoutInflater.inflate(R.layout.tile, grid, false);
-                grid.addView(tileView);
-
-                int finalJ = j;
-                int finalI = i;
-                tileView.setOnClickListener(v -> onPressListener.onPress(finalJ, finalI));
-
-                views[i][j] = tileView;
-            }
-        button.setBackgroundColor(Color.RED);
-        button.setOnClickListener(v -> resetOnPressListener.reset());
-    }
+    Navigator navigator = new SupportAppNavigator(this, R.id.mainView) {
+        @Override
+        protected void setupFragmentTransaction(
+                @NotNull Command command,
+                @Nullable Fragment currentFragment,
+                @Nullable Fragment nextFragment,
+                @NotNull FragmentTransaction fragmentTransaction
+        ) {
+            fragmentTransaction.setCustomAnimations(
+                    R.anim.fragment_open_enter,
+                    R.anim.fragment_open_exit,
+                    R.anim.fragment_close_enter,
+                    R.anim.fragment_close_exit
+            );
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        recyclerView = findViewById(R.id.rv);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        recyclerView.setAdapter(new GameLogAdapter(LayoutInflater.from(this)));
-        initColors();
 
-        ActionTransmitterImpl actionTransmitter = new ActionTransmitterImpl();
+        App app = (App) getApplication();
+        app.appComponent.inject(this);
 
-        EditText keyPrompt = findViewById(R.id.key_prompt);
-        join = findViewById(R.id.join_btn);
-        join.setOnClickListener(v -> actionTransmitter.connect(
-                "oceancraft.ru",
-                8081,
-                () -> actionTransmitter.join(
-                        keyPrompt.getText().toString(),
-                        () -> startNetworkGame(actionTransmitter, false),
-                        () -> Toast.makeText(this, "Error join to server", Toast.LENGTH_SHORT).show()
-                ),
-                () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
-        ));
-
-        create = findViewById(R.id.create_btn);
-        create.setOnClickListener(v -> actionTransmitter.connect(
-                "oceancraft.ru",
-                8081,
-                () -> actionTransmitter.createRoom(key -> {
-                            Snackbar.make(findViewById(R.id.mainView), "Room created: " + key, Snackbar.LENGTH_LONG)
-                                    .setAction("COPY", sv -> {
-                                        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                                        ClipData clip = ClipData.newPlainText("ChessGame", key);
-                                        clipboard.setPrimaryClip(clip);
-                                    })
-                                    .show();
-                            startNetworkGame(actionTransmitter, true);
-                        },
-                        () -> Toast.makeText(this, "Error creating room", Toast.LENGTH_SHORT).show()
-                ),
-                () -> Toast.makeText(this, "Error connect to server", Toast.LENGTH_SHORT).show()
-        ));
-
-
-        Button offlineButton = findViewById(R.id.offline_btn);
-        offlineButton.setOnClickListener(v -> startOfflineGame());
-
-    }
-
-    void startOfflineGame() {
-        chessGame = new ChessGame(this);
-        loadViews(true);
-        chessGame.initGame();
-    }
-
-    void startNetworkGame(ActionTransmitter actionTransmitter, boolean white) {
-        chessGame = new ChessGame(this, actionTransmitter, white);
-        loadViews(white);
-        chessGame.initGame();
-        join.setVisibility(View.INVISIBLE);
-        create.setVisibility(View.INVISIBLE);
-        findViewById(R.id.key_prompt_layout).setVisibility(View.INVISIBLE);
+        if (savedInstanceState == null)
+            router.newRootScreen(new Screens.LaunchScreen());
     }
 
     @Override
-    public void onHighLight(int x, int y, boolean isHighLighted, boolean isBlack) {
-        int realColor = isBlack ? blackColor : whiteColor;
-        int color = isHighLighted ? highLightColor : realColor;
-        views[y][x].setCardBackgroundColor(color);
+    public void onBackPressed() {
+        router.exit();
     }
 
     @Override
-    public void onChangeTile(int x, int y, TileType type) {
-        AndroidTileType androidTileType = AndroidTileType.getByTileType(type);
-        ImageView imageView = views[y][x].findViewById(R.id.img);
-        if (androidTileType.getValue() != -1) {
-            imageView.setVisibility(View.VISIBLE);
-            Glide.with(this).load(androidTileType.getValue()).into(imageView);
-        } else {
-            imageView.setVisibility(View.INVISIBLE);
-        }
+    protected void onResume() {
+        super.onResume();
+        navigatorHolder.setNavigator(navigator);
     }
 
     @Override
-    public void setOnPressListener(OnPressListener onPressListener) {
-        this.onPressListener = onPressListener;
-    }
-
-    @Override
-    public void setResetOnPressListener(ResetOnPressListener resetOnPressListener) {
-        this.resetOnPressListener = resetOnPressListener;
-    }
-
-    @Override
-    public void onNewLogLine(LogLine logLine) {
-        GameLogAdapter adapter = (GameLogAdapter) recyclerView.getAdapter();
-        if (adapter != null) {
-            adapter.addLine(logLine);
-            recyclerView.scrollToPosition(adapter.getItemCount() - 1);
-        }
-    }
-
-    @Override
-    public void cleanLog() {
-        GameLogAdapter adapter = (GameLogAdapter) recyclerView.getAdapter();
-        if (adapter != null) {
-            adapter.clean();
-        }
-    }
-
-    @Override
-    public void onMoveFinished(boolean whiteTurn) {
-        loadViews(whiteTurn);
+    protected void onPause() {
+        super.onPause();
+        navigatorHolder.removeNavigator();
     }
 }
