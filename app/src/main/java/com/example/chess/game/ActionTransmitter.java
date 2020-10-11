@@ -1,11 +1,11 @@
 package com.example.chess.game;
 
 public interface ActionTransmitter {
-    void setOnMakeMoveListener(MoveListener moveListener);
+    void setOnMakeMoveListener(MoveListener eventListener);
 
     void makeMove(int xOld, int yOld, int xNew, int yNew);
 
-    void enPassant(Position deadPawn);
+    void enPassant(int x, int y);
 
     void castling(boolean longCastling);
 

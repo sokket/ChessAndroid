@@ -198,7 +198,7 @@ public class ChessGame {
                 if (netMode) {
                     actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
                     if (enPassant)
-                        actionTransmitter.enPassant(posForEnPassant);
+                        actionTransmitter.enPassant(posForEnPassant.getX(), posForEnPassant.getY());
                 } else {
                     chessView.onMoveFinished(!whiteTurn);
                     syncWithView();

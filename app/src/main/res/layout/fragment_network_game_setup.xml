@@ -49,7 +49,7 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/join_btn"
         android:layout_width="160dp"
         android:layout_height="wrap_content"
@@ -61,7 +61,7 @@
         app:layout_constraintStart_toStartOf="@+id/key_prompt_layout"
         app:layout_constraintTop_toBottomOf="@+id/key_prompt_layout" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/create_btn"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
