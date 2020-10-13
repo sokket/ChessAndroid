@@ -89,7 +89,7 @@ public class WaitingFragment extends Fragment {
                 ),
                 () -> {
                     showToast("Can't connect to server");
-                    router.exit();
+                    router.navigateTo(new Screens.LaunchScreen());
                 }
         );
     }

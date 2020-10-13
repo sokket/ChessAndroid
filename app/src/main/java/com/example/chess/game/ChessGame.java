@@ -2,6 +2,7 @@ package com.example.chess.game;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ChessGame {
     private final Tile[][] gameBoard = new Tile[8][8];
@@ -12,20 +13,18 @@ public class ChessGame {
     private int highLightSrcX;
     private int highLightSrcY;
 
-    private boolean whiteGame;
+    private final boolean whiteGame;
     private boolean whiteTurn = true;
-    private boolean enPassant = false;
-    private boolean castling = false;
-    private boolean longCastling = false;
 
-    private Position posForEnPassant = null;
-    private int check = 0;
-    private int checkmate = 1;
+    private Position lastPawnMove = null;
 
     private boolean allowedCastlingForLWR = true;
     private boolean allowedCastlingForLBR = true;
     private boolean allowedCastlingForRWR = true;
     private boolean allowedCastlingForRBR = true;
+
+    private final List<Movement> allowedMoves = new ArrayList<>();
+    private final List<Movement> showedMoves = new ArrayList<>();
 
     public ChessGame(ChessView chessView, ActionTransmitter actionTransmitter, boolean whiteGame) {
         this.chessView = chessView;
@@ -40,17 +39,17 @@ public class ChessGame {
         this.netMode = false;
     }
 
-    private List<Position> trimRays(boolean isSrcWhite, Position[][] moves) {
-        ArrayList<Position> trimmed = new ArrayList<>();
-        TileType tileType = gameBoard[highLightSrcY][highLightSrcX].getTileType();
+    private List<Movement> getMovements(Tile[][] board, int fromX, int fromY, boolean notRealMove) {
+        ArrayList<Movement> trimmed = new ArrayList<>();
+        TileType tileType = board[fromY][fromX].getTileType();
 
         boolean isPawn = tileType == TileType.WHITE_PAWN || tileType == TileType.BLACK_PAWN;
         boolean isKing = tileType == TileType.WHITE_KING || tileType == TileType.BLACK_KING;
 
         boolean lastTrimForCastlingAdd = false;
 
-        enPassant = false;
-        castling = false;
+        boolean isSrcWhite = tileType.isWhite();
+        Position[][] moves = tileType.getMovesFor(fromX, fromY);
 
         for (int i = 0; i < moves.length; i++)
             for (Position position : moves[i])
@@ -59,38 +58,56 @@ public class ChessGame {
                     boolean targetColor = isBlack(targetTileType);
 
                     if (targetTileType == TileType.BLANK && (!isPawn || i == 0) && !isKing) {
-                        trimmed.add(position);
+                        trimmed.add(new SimpleMovement(
+                                new Position(fromX, fromY),
+                                position
+                        ));
                     } else if (
                             targetTileType == TileType.BLACK_KING ||
                                     targetTileType == TileType.WHITE_KING) {
-                        if (isSrcWhite != targetColor) {
-                            check++;
-                            System.out.println("CHECK");
-                            chessView.onCheck();
+                        if (isSrcWhite != targetColor && notRealMove) {
+                            trimmed.add(new EatMovement(
+                                    new Position(fromX, fromY),
+                                    position
+                            ));
                         }
                         break;
-                    } else if (isPawn && i != 0 && posForEnPassant != null &&
-                            Math.abs(position.getY() - posForEnPassant.getY()) == 1 &&
-                            position.getX() == posForEnPassant.getX() &&
-                            isSrcWhite != getTileType(posForEnPassant).isWhite()
+                    } else if (isPawn && i != 0 && lastPawnMove != null &&
+                            Math.abs(position.y - lastPawnMove.y) == 1 &&
+                            position.x == lastPawnMove.x &&
+                            isSrcWhite != getTileType(lastPawnMove).isWhite()
                     ) {
-                        trimmed.add(position);
-                        posForEnPassant = null;
-                        enPassant = true;
+                        trimmed.add(new EnPassant(
+                                new Position(lastPawnMove.x, lastPawnMove.y),
+                                new Position(fromX, fromY),
+                                position
+                        ));
+                        lastPawnMove = null;
                     } else if (isKing && (i != 8 && i != 9) && targetTileType == TileType.BLANK) {
-                        trimmed.add(position);
+                        trimmed.add(new SimpleMovement(
+                                new Position(fromX, fromY),
+                                position
+                        ));
                     } else if (isKing && i == 8 && targetTileType == TileType.BLANK) {
                         if ((allowedCastlingForRWR && whiteTurn) || (allowedCastlingForLBR && !whiteTurn)) {
-                            trimmed.add(position);
-                            castling = true;
+                            trimmed.add(new Castling(
+                                    new Position(fromX, fromY),
+                                    position,
+                                    new Position(position.x + 1, fromY),
+                                    new Position(position.x - 1, fromY)
+                            ));
                         } else {
                             break;
                         }
                     } else if (isKing && targetTileType == TileType.BLANK) {
                         if ((allowedCastlingForLWR && whiteTurn) || (allowedCastlingForRBR && !whiteTurn)) {
-                            trimmed.add(position);
+                            trimmed.add(new Castling(
+                                    new Position(fromX, fromY),
+                                    position,
+                                    new Position(position.x - 2, fromY),
+                                    new Position(position.x + 1, fromY)
+                            ));
                             lastTrimForCastlingAdd = true;
-                            castling = true;
                         } else {
                             break;
                         }
@@ -102,25 +119,129 @@ public class ChessGame {
                     } else if (
                             targetTileType != TileType.BLANK &&
                                     isSrcWhite != targetColor && (!isPawn || i != 0)) {
-                        trimmed.add(position);
+                        trimmed.add(new EatMovement(
+                                new Position(fromX, fromY),
+                                position
+                        ));
                         break;
                     } else
                         break;
                 }
 
+        if (!allowedMoves.isEmpty()) {
+            return trimmed.stream()
+                    .filter(allowedMoves::contains)
+                    .collect(Collectors.toList());
+        }
+
         return trimmed;
     }
 
-    /*private List<Position> trimRaysForDelCheck () {
+    /**
+     * Is there a check for player whose turn is now
+     */
 
-    }*/
+    boolean isCheck(Tile[][] board) {
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 8; j++) {
+                TileType tileType = board[i][j].getTileType();
+                if (tileType.isWhite() != whiteTurn) {
+                    TileType defKing = whiteTurn ? TileType.WHITE_KING : TileType.BLACK_KING;
+                    List<Movement> nTrim = getMovements(board, j, i, true);
+                    for (Movement mov : nTrim) {
+                        Position pos = mov.highLighted;
+                        TileType type = board[pos.y][pos.x].getTileType();
+                        if (type == defKing)
+                            return true;
+                    }
+                }
+            }
+
+        return false;
+    }
+
+    void changeBoardWithMove(Tile[][] board, Movement movement) {
+        Position highLighted = movement.highLighted;
+        if (movement instanceof SimpleMovement) {
+            SimpleMovement simpleMovement = (SimpleMovement) movement;
+            Position oldPosition = simpleMovement.oldPosition;
+            TileType oldTileType = board[oldPosition.y][oldPosition.x].getTileType();
+            board[highLighted.y][highLighted.x].setTileType(oldTileType);
+            board[oldPosition.y][oldPosition.x].setTileType(TileType.BLANK);
+        } else if (movement instanceof EatMovement) {
+            EatMovement eatMovement = (EatMovement) movement;
+            Position attackerPosition = eatMovement.attackerPosition;
+            TileType attackerTileType = board[attackerPosition.y][attackerPosition.x].getTileType();
+            board[highLighted.y][highLighted.x].setTileType(attackerTileType);
+            board[attackerPosition.y][attackerPosition.x].setTileType(TileType.BLANK);
+        } else if (movement instanceof EnPassant) {
+            EnPassant enPassant = ((EnPassant) movement);
+            Position oldPosition = enPassant.oldPosition;
+            Position deadPawn = enPassant.deadPawn;
+            TileType oldTileType = board[oldPosition.y][oldPosition.x].getTileType();
+            board[oldPosition.y][oldPosition.x].setTileType(TileType.BLANK);
+            board[highLighted.y][highLighted.x].setTileType(oldTileType);
+            board[deadPawn.y][deadPawn.x].setTileType(TileType.BLANK);
+        } else if (movement instanceof Castling) {
+            Castling castling = (Castling) movement;
+            Position kingOldPosition = castling.kingOldPosition;
+            Position rookNewPosition = castling.rookNewPosition;
+            Position rookOldPosition = castling.rookOldPosition;
+            TileType kingOldTileType = board[kingOldPosition.y][kingOldPosition.x].getTileType();
+            board[highLighted.y][highLighted.x].setTileType(kingOldTileType);
+            TileType rookOldTileType = board[rookOldPosition.y][rookOldPosition.x].getTileType();
+            board[rookNewPosition.y][rookNewPosition.x].setTileType(rookOldTileType);
+            board[kingOldPosition.y][kingOldPosition.x].setTileType(TileType.BLANK);
+            board[rookOldPosition.y][rookOldPosition.x].setTileType(TileType.BLANK);
+        }
+    }
+
+    private List<Movement> calculateCheckResolveMoves() {
+        ArrayList<Movement> positions = new ArrayList<>();
+        Tile[][] board = copyOfBoard();
+        for (int y = 0; y < 8; y++)
+            for (int x = 0; x < 8; x++) {
+                TileType tileType = board[y][x].getTileType();
+                if (tileType.isWhite() == whiteTurn) {
+                    List<Movement> nTrim = getMovements(board, x, y, true);
+                    board[y][x].setTileType(TileType.BLANK);
+                    for (Movement movement : nTrim) {
+                        Tile[][] boardCopy = board.clone();
+                        changeBoardWithMove(boardCopy, movement);
+                        if (!isCheck(boardCopy))
+                            positions.add(movement);
+                        //System.out.println(x + ", " + y + " " + board[y][x].getTileType().getName() + " -> " + position.x + ", " + position.y + " " + board[position.y][position.x].getTileType().getName());
+                    }
+                    board[y][x].setTileType(tileType);
+                }
+            }
+        return positions;
+    }
+
+    private Tile[][] copyOfBoard() {
+        Tile[][] copy = new Tile[8][8];
+        for (int i = 0; i < 8; i++)
+            for (int j = 0; j < 8; j++) {
+                Tile original = gameBoard[i][j];
+                copy[i][j] =
+                        new Tile(
+                                original.isBlack(),
+                                original.getTileType(),
+                                ignore -> {
+                                },
+                                ignore -> {
+                                }
+                        );
+            }
+        return copy;
+    }
 
     private boolean isBlack(TileType tileType) {
         return tileType.isWhite();
     }
 
     private TileType getTileType(Position position) {
-        return gameBoard[position.getY()][position.getX()].getTileType();
+        return gameBoard[position.y][position.x].getTileType();
     }
 
     private void syncWithView() {
@@ -131,7 +252,7 @@ public class ChessGame {
             }
     }
 
-    public void initGame() {
+    private void setupGameBoard() {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
                 final boolean isBlack =
@@ -148,121 +269,133 @@ public class ChessGame {
                         tileType -> chessView.onChangeTile(finalX, finalY, tileType)
                 );
             }
-
-        chessView.setOnPressListener((x, y) -> {
-            Tile currentTile = gameBoard[y][x];
-            if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
-                clearHighLight();
-                Tile highLightSourceTile = gameBoard[highLightSrcY][highLightSrcX];
-                TileType targetTileType = highLightSourceTile.getTileType();
-                highLightSourceTile.setTileType(TileType.BLANK);
-
-                if (whiteTurn && highLightSrcX > x && castling)
-                    longCastling = true;
-                else if (highLightSrcX > x && castling)
-                    longCastling = true;
-
-                if (Math.abs(highLightSrcY - y) == 2 &&
-                        (targetTileType == TileType.BLACK_PAWN ||
-                                targetTileType == TileType.WHITE_PAWN))
-                    posForEnPassant = new Position(x, y);
-                else posForEnPassant = null;
-
-                checkOnCastling(targetTileType);
-
-                if (enPassant)
-                    if (y == 5)
-                        gameBoard[y - 1][x].setTileType(TileType.BLANK);
-                    else
-                        gameBoard[y + 1][x].setTileType(TileType.BLANK);
-                enPassant = false;
-
-                if (castling)
-                    if (longCastling) {
-                        TileType rook = gameBoard[y][x - 2].getTileType();
-                        gameBoard[y][x - 2].setTileType(TileType.BLANK);
-                        gameBoard[y][x + 1].setTileType(rook);
-                    } else {
-                        TileType rook = gameBoard[y][x + 1].getTileType();
-                        gameBoard[y][x + 1].setTileType(TileType.BLANK);
-                        gameBoard[y][x - 1].setTileType(rook);
-                    }
-
-
-                currentTile.setTileType(targetTileType);
-                checkForCheck();
-                if (checkmate > 1) {
-                    onCheckmate();
-                }
-
-                if (netMode) {
-                    actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
-                    if (enPassant)
-                        actionTransmitter.enPassant(posForEnPassant.getX(), posForEnPassant.getY());
-                } else {
-                    chessView.onMoveFinished(!whiteTurn);
-                    syncWithView();
-                }
-
-                chessView.onNewLogLine(new LogLine(highLightSrcX, highLightSrcY, x, y, targetTileType.getName(), check != 0, checkmate == 2, castling, longCastling));
-                whiteTurn = !whiteTurn;
-            } else if (checkmate != 2) {
-                clearHighLight();
-                highLightSrcX = x;
-                highLightSrcY = y;
-
-                drawHighLight(x, y);
-            }
-
-        });
-        chessView.setResetOnPressListener(this::reset);
-
-        if (netMode)
-            actionTransmitter.setOnMakeMoveListener((oX, oY, nX, nY) -> {
-                if (checkOverLap(new Position(oX, oY)) && checkOverLap(new Position(nX, nY))) {
-                    TileType tileType = gameBoard[oY][oX].getTileType();
-
-                    if (Math.abs(oY - nY) == 2 &&
-                            (tileType == TileType.BLACK_PAWN ||
-                                    tileType == TileType.WHITE_PAWN))
-                        posForEnPassant = new Position(nX, nY);
-                    else posForEnPassant = null;
-
-                    gameBoard[oY][oX].setTileType(TileType.BLANK);
-                    gameBoard[nY][nX].setTileType(tileType);
-                    checkForCheck();
-                    if (checkmate > 1) {
-                        onCheckmate();
-                    }
-                    chessView.onNewLogLine(new LogLine(oX, oY, nX, nY, tileType.getName(), check != 0, checkmate == 2, castling, longCastling));
-                    clearHighLight();
-                    drawHighLight(highLightSrcX, highLightSrcY);
-
-                    whiteTurn = !whiteTurn;
-                }
-            });
     }
 
-    void drawHighLight(int x, int y) {
-        TileType currentTileType = gameBoard[y][x].getTileType();
-        if (netMode ? currentTileType.isWhite() == whiteGame : currentTileType.isWhite() == whiteTurn) {
-            Position[][] moves = currentTileType.getMovesFor(x, y);
-            trimRays(currentTileType.isWhite(), moves).forEach(it ->
-                    gameBoard[it.getY()][it.getX()].setHighLighted(true)
-            );
+    void nextTurn() {
+        whiteTurn = !whiteTurn;
+        allowedMoves.clear();
+        if (isCheck(gameBoard)) {
+            List<Movement> positions = calculateCheckResolveMoves();
+            allowedMoves.addAll(positions);
+            System.out.println(positions);
         }
     }
 
-    void checkForCheck() {
-        check = 0;
-        for (int i = 0; i < 8; i++)
-            for (int j = 0; j < 8; j++) {
-                TileType currentTileType = gameBoard[j][i].getTileType();
-                Position[][] moves = currentTileType.getMovesFor(i, j);
-                trimRays(currentTileType.isWhite(), moves);
+    void saveDataForEnPassant(int x, int y, TileType targetTileType) {
+        if (Math.abs(highLightSrcY - y) == 2 &&
+                (targetTileType == TileType.BLACK_PAWN ||
+                        targetTileType == TileType.WHITE_PAWN))
+            lastPawnMove = new Position(x, y);
+        else
+            lastPawnMove = null;
+    }
+
+    void onMove(int x, int y) {
+        clearHighLight();
+
+        Movement movement =
+                showedMoves.stream()
+                        .filter(m -> m.highLighted.x == x && m.highLighted.y == y)
+                        .findFirst()
+                        .orElseThrow(IllegalArgumentException::new);
+
+        changeBoardWithMove(gameBoard, movement);
+
+        Position hlPosition = movement.highLighted;
+        Tile targetTile = gameBoard[hlPosition.y][hlPosition.x];
+        TileType targetTileType = targetTile.getTileType();
+
+        saveDataForEnPassant(x, y, targetTileType);
+        checkOnCastling(targetTileType);
+
+        if (netMode) {
+            actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
+        } else {
+            chessView.onMoveFinished(!whiteTurn);
+            syncWithView();
+        }
+
+        chessView.onNewLogLine(
+                new LogLine(
+                        highLightSrcX, highLightSrcY,
+                        x, y,
+                        targetTileType.getName(),
+                        false,
+                        false,
+                        false,
+                        false
+                )
+        );
+
+        nextTurn();
+    }
+
+    private void onClickTile(int x, int y) {
+        Tile currentTile = gameBoard[y][x];
+        if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn))
+            onMove(x, y);
+        else {
+            highLightSrcX = x;
+            highLightSrcY = y;
+            drawHighLight(x, y);
+        }
+    }
+
+    void onNetworkMove(int oX, int oY, int nX, int nY) {
+        if (checkOverLap(new Position(oX, oY)) && checkOverLap(new Position(nX, nY))) {
+            TileType tileType = gameBoard[oY][oX].getTileType();
+
+            if (Math.abs(oY - nY) == 2 &&
+                    (tileType == TileType.BLACK_PAWN ||
+                            tileType == TileType.WHITE_PAWN))
+                lastPawnMove = new Position(nX, nY);
+            else
+                lastPawnMove = null;
+
+            gameBoard[oY][oX].setTileType(TileType.BLANK);
+            gameBoard[nY][nX].setTileType(tileType);
+
+
+            chessView.onNewLogLine(
+                    new LogLine(
+                            oX, oY,
+                            nX, nY,
+                            tileType.getName(),
+                            false,
+                            false,
+                            false,
+                            false
+                    )
+            );
+
+            nextTurn();
+            drawHighLight(highLightSrcX, highLightSrcY);
+        }
+    }
+
+    public void initGame() {
+        setupGameBoard();
+
+        chessView.setOnPressListener(this::onClickTile);
+        chessView.setResetOnPressListener(this::reset);
+
+        if (netMode)
+            actionTransmitter.setOnMakeMoveListener(this::onNetworkMove);
+    }
+
+    void drawHighLight(int x, int y) {
+        clearHighLight();
+        TileType currentTileType = gameBoard[y][x].getTileType();
+        if (netMode ? currentTileType.isWhite() == whiteGame : currentTileType.isWhite() == whiteTurn) {
+            List<Movement> generatedMoves = getMovements(gameBoard, x, y, false);
+            showedMoves.clear();
+            showedMoves.addAll(generatedMoves);
+            for (Movement movement : generatedMoves) {
+                Position pos = movement.highLighted;
+                Tile highLightedTile = gameBoard[pos.y][pos.x];
+                highLightedTile.setHighLighted(true);
             }
-        checkmate += check != 0 ? 1 : checkmate * -1;
-        System.out.println(checkmate);
+        }
     }
 
     TileType startingLineup(int i, int j) {
@@ -289,8 +422,6 @@ public class ChessGame {
             }
         chessView.cleanLog();
         whiteTurn = true;
-        checkmate = 0;
-        check = 0;
     }
 
     void clearHighLight() {
@@ -300,15 +431,9 @@ public class ChessGame {
     }
 
     private boolean checkOverLap(Position position) {
-        int x = position.getX();
-        int y = position.getY();
+        int x = position.x;
+        int y = position.y;
         return x >= 0 && x < 8 && y >= 0 && y < 8;
-    }
-
-    void onCheckmate() {
-        System.out.println("CHECKMATE");
-        chessView.onCheckmate();
-        clearHighLight();
     }
 
     void checkOnCastling(TileType targetTileType) {

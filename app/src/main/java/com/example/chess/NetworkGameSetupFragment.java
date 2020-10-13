@@ -45,7 +45,7 @@ public class NetworkGameSetupFragment extends Fragment {
     }
 
     void showToast(String text) {
-        Toast.makeText(requireContext(), text, Toast.LENGTH_LONG).show();
+        Toast.makeText(requireContext(), text, Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -60,10 +60,7 @@ public class NetworkGameSetupFragment extends Fragment {
                 () -> actionTransmitter.join(
                         inviteCodeView.getText().toString(),
                         () -> router.navigateTo(new Screens.GameScreen(true, false)),
-                        () -> {
-                            showToast("Can't join room");
-                            router.exit();
-                        }
+                        () -> showToast("Can't join room")
                 ),
                 () -> {
                     showToast("Can't connect to server");
