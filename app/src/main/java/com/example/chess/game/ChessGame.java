@@ -136,9 +136,6 @@ public class ChessGame {
         return trimmed;
     }
 
-    /**
-     * Is there a check for player whose turn is now
-     */
 
     boolean isCheck(Tile[][] board) {
         for (int i = 0; i < 8; i++)
@@ -284,14 +281,12 @@ public class ChessGame {
             lastPawnMove = null;
     }
 
-    void onMove(int x, int y) {
+    void onMove(Movement movement) {
         clearHighLight();
 
-        Movement movement =
-                showedMoves.stream()
-                        .filter(m -> m.highLighted.x == x && m.highLighted.y == y)
-                        .findFirst()
-                        .orElseThrow(IllegalArgumentException::new);
+        Position position = movement.highLighted;
+        int x = position.x;
+        int y = position.y;
 
         changeBoardWithMove(gameBoard, movement);
 
@@ -324,11 +319,19 @@ public class ChessGame {
         nextTurn();
     }
 
+    Movement findShowedMove(int x, int y) {
+        return showedMoves.stream()
+                        .filter(m -> m.highLighted.x == x && m.highLighted.y == y)
+                        .findFirst()
+                        .orElseThrow(IllegalArgumentException::new);
+    }
+
     private void onClickTile(int x, int y) {
         Tile currentTile = gameBoard[y][x];
-        if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn))
-            onMove(x, y);
-        else {
+        if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
+            Movement movement = findShowedMove(x, y);
+            onMove(movement);
+        }else {
             highLightSrcX = x;
             highLightSrcY = y;
             drawHighLight(x, y);
@@ -372,8 +375,21 @@ public class ChessGame {
         chessView.setOnPressListener(this::onClickTile);
         chessView.setResetOnPressListener(this::reset);
 
-        if (netMode)
-            actionTransmitter.setOnMakeMoveListener(this::onNetworkMove);
+        if (netMode) {
+            actionTransmitter.setOnMakeMoveListener((oX, oY, nX, nY) -> {
+                Position oldPosition = new Position(oX, oY);
+                Position newPosition = new Position(nX, nY);
+                Movement move;
+                if (gameBoard[nY][nX].getTileType() != TileType.BLANK)
+                    move = new EatMovement(oldPosition, newPosition);
+                else
+                    move = new SimpleMovement(oldPosition, newPosition);
+                onMove(move);
+            });
+            actionTransmitter.setOnEnPassantListener((x, y) -> {
+
+            });
+        }
     }
 
     void drawHighLight(int x, int y) {
