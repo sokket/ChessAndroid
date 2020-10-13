@@ -128,7 +128,7 @@ public class ChessGame {
                         break;
                 }
 
-        if (!allowedMoves.isEmpty()) {
+        if (!notRealMove && !allowedMoves.isEmpty()) {
             return trimmed.stream()
                     .filter(allowedMoves::contains)
                     .collect(Collectors.toList());
@@ -198,7 +198,7 @@ public class ChessGame {
 
     private List<Movement> calculateCheckResolveMoves() {
         ArrayList<Movement> positions = new ArrayList<>();
-        Tile[][] board = copyOfBoard();
+        Tile[][] board = copyOfBoard(gameBoard);
         for (int y = 0; y < 8; y++)
             for (int x = 0; x < 8; x++) {
                 TileType tileType = board[y][x].getTileType();
@@ -206,7 +206,7 @@ public class ChessGame {
                     List<Movement> nTrim = getMovements(board, x, y, true);
                     board[y][x].setTileType(TileType.BLANK);
                     for (Movement movement : nTrim) {
-                        Tile[][] boardCopy = board.clone();
+                        Tile[][] boardCopy = copyOfBoard(board);
                         changeBoardWithMove(boardCopy, movement);
                         if (!isCheck(boardCopy))
                             positions.add(movement);
@@ -218,11 +218,11 @@ public class ChessGame {
         return positions;
     }
 
-    private Tile[][] copyOfBoard() {
+    private Tile[][] copyOfBoard(Tile[][] originalBoard) {
         Tile[][] copy = new Tile[8][8];
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
-                Tile original = gameBoard[i][j];
+                Tile original = originalBoard[i][j];
                 copy[i][j] =
                         new Tile(
                                 original.isBlack(),
