@@ -54,7 +54,7 @@ public class ChessGame {
         for (int i = 0; i < moves.length; i++)
             for (Position position : moves[i])
                 if (checkOverLap(position)) {
-                    TileType targetTileType = getTileType(position);
+                    TileType targetTileType = board[position.y][position.x].getTileType();
                     boolean targetColor = isBlack(targetTileType);
 
                     if (targetTileType == TileType.BLANK && (!isPawn || i == 0) && !isKing) {
@@ -75,14 +75,13 @@ public class ChessGame {
                     } else if (isPawn && i != 0 && lastPawnMove != null &&
                             Math.abs(position.y - lastPawnMove.y) == 1 &&
                             position.x == lastPawnMove.x &&
-                            isSrcWhite != getTileType(lastPawnMove).isWhite()
+                            isSrcWhite != board[lastPawnMove.y][lastPawnMove.x].getTileType().isWhite()
                     ) {
                         trimmed.add(new EnPassant(
                                 new Position(lastPawnMove.x, lastPawnMove.y),
                                 new Position(fromX, fromY),
                                 position
                         ));
-                        lastPawnMove = null;
                     } else if (isKing && (i != 8 && i != 9) && targetTileType == TileType.BLANK) {
                         trimmed.add(new SimpleMovement(
                                 new Position(fromX, fromY),
@@ -145,7 +144,7 @@ public class ChessGame {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
                 TileType tileType = board[i][j].getTileType();
-                if (tileType.isWhite() != whiteTurn) {
+                if (tileType != TileType.BLANK && tileType.isWhite() != whiteTurn) {
                     TileType defKing = whiteTurn ? TileType.WHITE_KING : TileType.BLACK_KING;
                     List<Movement> nTrim = getMovements(board, j, i, true);
                     for (Movement mov : nTrim) {
@@ -196,23 +195,24 @@ public class ChessGame {
         }
     }
 
-    private List<Movement> calculateCheckResolveMoves() {
+    private List<Movement> calculateCheckResolveMoves(Tile[][] board) {
         ArrayList<Movement> positions = new ArrayList<>();
-        Tile[][] board = copyOfBoard(gameBoard);
         for (int y = 0; y < 8; y++)
             for (int x = 0; x < 8; x++) {
                 TileType tileType = board[y][x].getTileType();
-                if (tileType.isWhite() == whiteTurn) {
+                if (tileType != TileType.BLANK && tileType.isWhite() == whiteTurn) {
                     List<Movement> nTrim = getMovements(board, x, y, true);
-                    board[y][x].setTileType(TileType.BLANK);
                     for (Movement movement : nTrim) {
                         Tile[][] boardCopy = copyOfBoard(board);
                         changeBoardWithMove(boardCopy, movement);
-                        if (!isCheck(boardCopy))
+                        if (!isCheck(boardCopy)) {
                             positions.add(movement);
-                        //System.out.println(x + ", " + y + " " + board[y][x].getTileType().getName() + " -> " + position.x + ", " + position.y + " " + board[position.y][position.x].getTileType().getName());
+                            Position moveHL = movement.highLighted;
+                            System.out.println(x + ", " + y + " " + boardCopy[y][x].getTileType().getName() + " -> " +
+                                    moveHL.x + ", " + moveHL.y + " " +
+                                    boardCopy[moveHL.y][moveHL.x].getTileType().getName());
+                        }
                     }
-                    board[y][x].setTileType(tileType);
                 }
             }
         return positions;
@@ -238,10 +238,6 @@ public class ChessGame {
 
     private boolean isBlack(TileType tileType) {
         return tileType.isWhite();
-    }
-
-    private TileType getTileType(Position position) {
-        return gameBoard[position.y][position.x].getTileType();
     }
 
     private void syncWithView() {
@@ -274,15 +270,13 @@ public class ChessGame {
     void nextTurn() {
         whiteTurn = !whiteTurn;
         allowedMoves.clear();
-        if (isCheck(gameBoard)) {
-            List<Movement> positions = calculateCheckResolveMoves();
-            allowedMoves.addAll(positions);
-            System.out.println(positions);
-        }
+
+        List<Movement> positions = calculateCheckResolveMoves(gameBoard);
+        allowedMoves.addAll(positions);
     }
 
-    void saveDataForEnPassant(int x, int y, TileType targetTileType) {
-        if (Math.abs(highLightSrcY - y) == 2 &&
+    void saveDataForEnPassant(int srcY, int x, int y, TileType targetTileType) {
+        if (Math.abs(srcY - y) == 2 &&
                 (targetTileType == TileType.BLACK_PAWN ||
                         targetTileType == TileType.WHITE_PAWN))
             lastPawnMove = new Position(x, y);
@@ -305,7 +299,7 @@ public class ChessGame {
         Tile targetTile = gameBoard[hlPosition.y][hlPosition.x];
         TileType targetTileType = targetTile.getTileType();
 
-        saveDataForEnPassant(x, y, targetTileType);
+        saveDataForEnPassant(highLightSrcY, x, y, targetTileType);
         checkOnCastling(targetTileType);
 
         if (netMode) {
@@ -342,19 +336,18 @@ public class ChessGame {
     }
 
     void onNetworkMove(int oX, int oY, int nX, int nY) {
-        if (checkOverLap(new Position(oX, oY)) && checkOverLap(new Position(nX, nY))) {
+        Position oldPosition = new Position(oX, oY);
+        Position newPosition = new Position(nX, nY);
+
+        if (checkOverLap(oldPosition) && checkOverLap(newPosition)) {
             TileType tileType = gameBoard[oY][oX].getTileType();
 
-            if (Math.abs(oY - nY) == 2 &&
-                    (tileType == TileType.BLACK_PAWN ||
-                            tileType == TileType.WHITE_PAWN))
-                lastPawnMove = new Position(nX, nY);
-            else
-                lastPawnMove = null;
+            changeBoardWithMove(gameBoard, new EatMovement(
+                    oldPosition,
+                    newPosition
+            ));
 
-            gameBoard[oY][oX].setTileType(TileType.BLANK);
-            gameBoard[nY][nX].setTileType(tileType);
-
+            saveDataForEnPassant(oY, nX, nY, tileType);
 
             chessView.onNewLogLine(
                     new LogLine(
