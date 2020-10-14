@@ -65,7 +65,7 @@ public class ChessGame {
                     } else if (
                             targetTileType == TileType.BLACK_KING ||
                                     targetTileType == TileType.WHITE_KING) {
-                        if (isSrcWhite != targetColor && notRealMove) {
+                        if (isSrcWhite != targetColor && notRealMove && (!isPawn || i != 0)) {
                             trimmed.add(new EatMovement(
                                     new Position(fromX, fromY),
                                     position
@@ -93,7 +93,8 @@ public class ChessGame {
                                     new Position(fromX, fromY),
                                     position,
                                     new Position(position.x + 1, fromY),
-                                    new Position(position.x - 1, fromY)
+                                    new Position(position.x - 1, fromY),
+                                    false
                             ));
                         } else {
                             break;
@@ -104,7 +105,8 @@ public class ChessGame {
                                     new Position(fromX, fromY),
                                     position,
                                     new Position(position.x - 2, fromY),
-                                    new Position(position.x + 1, fromY)
+                                    new Position(position.x + 1, fromY),
+                                    true
                             ));
                             lastTrimForCastlingAdd = true;
                         } else {
@@ -147,8 +149,10 @@ public class ChessGame {
                     for (Movement mov : nTrim) {
                         Position pos = mov.highLighted;
                         TileType type = board[pos.y][pos.x].getTileType();
-                        if (type == defKing)
+                        if (type == defKing) {
+                            checkOnCastling(defKing);
                             return true;
+                        }
                     }
                 }
             }
@@ -205,7 +209,7 @@ public class ChessGame {
                         if (!isCheck(boardCopy)) {
                             positions.add(movement);
                             Position moveHL = movement.highLighted;
-                            System.out.println(x + ", " + y + " " + boardCopy[y][x].getTileType().getName() + " -> " +
+                            System.out.println(x + ", " + y + " " + boardCopy[moveHL.y][moveHL.x].getTileType().getName() + " -> " +
                                     moveHL.x + ", " + moveHL.y + " " +
                                     boardCopy[moveHL.y][moveHL.x].getTileType().getName());
                         }
@@ -430,6 +434,7 @@ public class ChessGame {
                 gameBoard[i][j].setHighLighted(false);
             }
         chessView.cleanLog();
+        resetCastling();
         whiteTurn = true;
     }
 
@@ -445,7 +450,14 @@ public class ChessGame {
         return x >= 0 && x < 8 && y >= 0 && y < 8;
     }
 
-    void checkOnCastling(TileType targetTileType) {
+    void resetCastling() {
+        allowedCastlingForLWR = true;
+        allowedCastlingForLBR = true;
+        allowedCastlingForRWR = true;
+        allowedCastlingForRBR = true;
+    }
+
+    void checkOnCastling(TileType targetTileType, boolean fromIsCheck) {
         if (targetTileType == TileType.BLACK_ROOK ||
                 targetTileType == TileType.WHITE_ROOK ||
                 targetTileType == TileType.WHITE_KING ||
@@ -465,7 +477,6 @@ public class ChessGame {
                 allowedCastlingForLBR = false;
                 allowedCastlingForRBR = false;
             }
-
         }
     }
 }

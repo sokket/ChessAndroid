@@ -6,12 +6,18 @@ public class Castling extends Movement {
     public Position kingOldPosition;
     public Position rookOldPosition;
     public Position rookNewPosition;
+    public boolean longCastling;
 
-    public Castling(Position kingOldPosition, Position kingNewPosition, Position rookOldPosition, Position rookNewPosition) {
+    public Castling(Position kingOldPosition,
+                    Position kingNewPosition,
+                    Position rookOldPosition,
+                    Position rookNewPosition,
+                    boolean longCastling) {
         this.kingOldPosition = kingOldPosition;
         this.highLighted = kingNewPosition;
         this.rookOldPosition = rookOldPosition;
         this.rookNewPosition = rookNewPosition;
+        this.longCastling = longCastling;
     }
 
     @Override
