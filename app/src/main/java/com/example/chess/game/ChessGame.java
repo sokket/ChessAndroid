@@ -16,6 +16,8 @@ public class ChessGame {
     private final boolean whiteGame;
     private boolean whiteTurn = true;
 
+    private boolean checkmate = false;
+
     private Position lastPawnMove = null;
 
     private boolean allowedCastlingForLWR = true;
@@ -164,10 +166,11 @@ public class ChessGame {
                         break;
                 }
 
-        if (!notRealMove && !allowedMoves.isEmpty()) {
+        if (!notRealMove && (!allowedMoves.isEmpty() || checkmate)) {
             return trimmed.stream()
                     .filter(allowedMoves::contains)
                     .collect(Collectors.toList());
+
         }
 
         return trimmed;
@@ -189,7 +192,6 @@ public class ChessGame {
                         TileType type = board[pos.y][pos.x].getTileType();
                         if (type == defKing)
                             return true;
-
                     }
                 }
             }
@@ -345,19 +347,24 @@ public class ChessGame {
             syncWithView();
         }
 
+        nextTurn();
+
+        boolean castling = movement instanceof Castling;
+        boolean longCastling = castling && ((Castling) movement).longCastling;
+        boolean check = isCheck(gameBoard);
+        checkmate = check && allowedMoves.isEmpty();
+
         chessView.onNewLogLine(
                 new LogLine(
                         highLightSrcX, highLightSrcY,
                         x, y,
                         targetTileType.getName(),
-                        false,
-                        false,
-                        false,
-                        false
+                        check,
+                        checkmate,
+                        castling,
+                        longCastling
                 )
         );
-
-        nextTurn();
     }
 
     Movement findShowedMove(int x, int y) {
