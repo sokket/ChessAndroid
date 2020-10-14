@@ -39,7 +39,37 @@ public class ChessGame {
         this.netMode = false;
     }
 
+    private boolean isCastlingAllowed(Tile[][] board, Castling castling) {
+        Tile[][] boardCopy = copyOfBoard(board);
+
+        int y = castling.kingOldPosition.y;
+        if (castling.longCastling) {
+            for (int x = castling.kingOldPosition.x + 1; x > castling.kingOldPosition.x - 2; x--) {
+                changeBoardWithMove(boardCopy, new SimpleMovement(
+                        new Position(x, y),
+                        new Position(x - 1, y)
+                ));
+                if (isCheck(boardCopy, true))
+                    return false;
+            }
+        } else {
+            for (int x = castling.kingOldPosition.x - 1; x < castling.kingOldPosition.x + 2; x++) {
+                changeBoardWithMove(boardCopy, new SimpleMovement(
+                        new Position(x, y),
+                        new Position(x + 1, y)
+                ));
+                if (isCheck(boardCopy,true))
+                    return false;
+            }
+        }
+        return true;
+    }
+
     private List<Movement> getMovements(Tile[][] board, int fromX, int fromY, boolean notRealMove) {
+        return getMovements(board, fromX, fromY, notRealMove, false);
+    }
+
+    private List<Movement> getMovements(Tile[][] board, int fromX, int fromY, boolean notRealMove, boolean ignoreCastling) {
         ArrayList<Movement> trimmed = new ArrayList<>();
         TileType tileType = board[fromY][fromX].getTileType();
 
@@ -89,25 +119,29 @@ public class ChessGame {
                         ));
                     } else if (isKing && i == 8 && targetTileType == TileType.BLANK) {
                         if ((allowedCastlingForRWR && whiteTurn) || (allowedCastlingForLBR && !whiteTurn)) {
-                            trimmed.add(new Castling(
+                            Castling castling = new Castling(
                                     new Position(fromX, fromY),
                                     position,
                                     new Position(position.x + 1, fromY),
                                     new Position(position.x - 1, fromY),
                                     false
-                            ));
+                            );
+                            if (!ignoreCastling && isCastlingAllowed(board, castling))
+                                trimmed.add(castling);
                         } else {
                             break;
                         }
                     } else if (isKing && targetTileType == TileType.BLANK) {
                         if ((allowedCastlingForLWR && whiteTurn) || (allowedCastlingForRBR && !whiteTurn)) {
-                            trimmed.add(new Castling(
+                            Castling castling = new Castling(
                                     new Position(fromX, fromY),
                                     position,
                                     new Position(position.x - 2, fromY),
                                     new Position(position.x + 1, fromY),
                                     true
-                            ));
+                            );
+                            if (!ignoreCastling && isCastlingAllowed(board, castling))
+                                trimmed.add(castling);
                             lastTrimForCastlingAdd = true;
                         } else {
                             break;
@@ -138,21 +172,23 @@ public class ChessGame {
         return trimmed;
     }
 
-
     boolean isCheck(Tile[][] board) {
+        return isCheck(board, false);
+    }
+
+    boolean isCheck(Tile[][] board, boolean ignoreCastling) {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
                 TileType tileType = board[i][j].getTileType();
                 if (tileType != TileType.BLANK && tileType.isWhite() != whiteTurn) {
                     TileType defKing = whiteTurn ? TileType.WHITE_KING : TileType.BLACK_KING;
-                    List<Movement> nTrim = getMovements(board, j, i, true);
+                    List<Movement> nTrim = getMovements(board, j, i, true, ignoreCastling);
                     for (Movement mov : nTrim) {
                         Position pos = mov.highLighted;
                         TileType type = board[pos.y][pos.x].getTileType();
-                        if (type == defKing) {
-                            checkOnCastling(defKing);
+                        if (type == defKing)
                             return true;
-                        }
+
                     }
                 }
             }
@@ -325,9 +361,9 @@ public class ChessGame {
 
     Movement findShowedMove(int x, int y) {
         return showedMoves.stream()
-                        .filter(m -> m.highLighted.x == x && m.highLighted.y == y)
-                        .findFirst()
-                        .orElseThrow(IllegalArgumentException::new);
+                .filter(m -> m.highLighted.x == x && m.highLighted.y == y)
+                .findFirst()
+                .orElseThrow(IllegalArgumentException::new);
     }
 
     private void onClickTile(int x, int y) {
@@ -335,7 +371,7 @@ public class ChessGame {
         if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
             Movement movement = findShowedMove(x, y);
             onMove(movement);
-        }else {
+        } else {
             highLightSrcX = x;
             highLightSrcY = y;
             drawHighLight(x, y);
@@ -457,7 +493,7 @@ public class ChessGame {
         allowedCastlingForRBR = true;
     }
 
-    void checkOnCastling(TileType targetTileType, boolean fromIsCheck) {
+    void checkOnCastling(TileType targetTileType) {
         if (targetTileType == TileType.BLACK_ROOK ||
                 targetTileType == TileType.WHITE_ROOK ||
                 targetTileType == TileType.WHITE_KING ||
