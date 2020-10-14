@@ -143,9 +143,10 @@ public class ChessGame {
                                     new Position(position.x + 1, fromY),
                                     true
                             );
-                            if (!ignoreCastling && isCastlingAllowed(board, castling))
+                            if (!ignoreCastling && isCastlingAllowed(board, castling)) {
                                 trimmed.add(castling);
-                            lastTrimForCastlingAdd = true;
+                                lastTrimForCastlingAdd = true;
+                            }
                         } else {
                             break;
                         }
@@ -248,8 +249,9 @@ public class ChessGame {
                         if (!isCheck(boardCopy)) {
                             positions.add(movement);
                             Position moveHL = movement.highLighted;
-                            System.out.println(x + ", " + y + " " + boardCopy[moveHL.y][moveHL.x].getTileType().getName() + " -> " +
+                            System.out.println(x + ", " + y + " " + " -> " +
                                     moveHL.x + ", " + moveHL.y + " " +
+                                    "Figure" +
                                     boardCopy[moveHL.y][moveHL.x].getTileType().getName());
                         }
                     }
