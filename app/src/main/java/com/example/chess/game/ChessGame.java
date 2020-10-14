@@ -251,7 +251,7 @@ public class ChessGame {
                             Position moveHL = movement.highLighted;
                             System.out.println(x + ", " + y + " " + " -> " +
                                     moveHL.x + ", " + moveHL.y + " " +
-                                    "Figure" +
+                                    "Figure: " +
                                     boardCopy[moveHL.y][moveHL.x].getTileType().getName());
                         }
                     }
