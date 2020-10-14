@@ -41,10 +41,11 @@ public class ChessGame {
 
     private boolean isCastlingAllowed(Tile[][] board, Castling castling) {
         Tile[][] boardCopy = copyOfBoard(board);
-
+        if (isCheck(boardCopy, true))
+            return false;
         int y = castling.kingOldPosition.y;
         if (castling.longCastling) {
-            for (int x = castling.kingOldPosition.x + 1; x > castling.kingOldPosition.x - 2; x--) {
+            for (int x = castling.kingOldPosition.x; x > castling.highLighted.x; x--) {
                 changeBoardWithMove(boardCopy, new SimpleMovement(
                         new Position(x, y),
                         new Position(x - 1, y)
@@ -53,12 +54,12 @@ public class ChessGame {
                     return false;
             }
         } else {
-            for (int x = castling.kingOldPosition.x - 1; x < castling.kingOldPosition.x + 2; x++) {
+            for (int x = castling.kingOldPosition.x; x < castling.highLighted.x; x++) {
                 changeBoardWithMove(boardCopy, new SimpleMovement(
                         new Position(x, y),
                         new Position(x + 1, y)
                 ));
-                if (isCheck(boardCopy,true))
+                if (isCheck(boardCopy, true))
                     return false;
             }
         }
