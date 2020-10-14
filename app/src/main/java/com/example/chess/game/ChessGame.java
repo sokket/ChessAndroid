@@ -106,6 +106,7 @@ public class ChessGame {
                         }
                         break;
                     } else if (isPawn && i != 0 && lastPawnMove != null &&
+                            (fromY == 3 || fromY == 4) &&
                             Math.abs(position.y - lastPawnMove.y) == 1 &&
                             position.x == lastPawnMove.x &&
                             isSrcWhite != board[lastPawnMove.y][lastPawnMove.x].getTileType().isWhite()
@@ -249,7 +250,7 @@ public class ChessGame {
                         if (!isCheck(boardCopy)) {
                             positions.add(movement);
                             Position moveHL = movement.highLighted;
-                            System.out.println(x + ", " + y + " " + " -> " +
+                            System.out.println(x + ", " + y + " --> " +
                                     moveHL.x + ", " + moveHL.y + " " +
                                     "Figure: " +
                                     boardCopy[moveHL.y][moveHL.x].getTileType().getName());
