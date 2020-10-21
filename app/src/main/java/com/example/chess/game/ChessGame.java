@@ -455,7 +455,43 @@ public class ChessGame {
                 onMove(enPassant, false);
             });
             actionTransmitter.setOnCastlingListener((longCastling) -> {
-
+                Position kingOldPosition;
+                Position kingNewPosition;
+                Position rookOldPosition;
+                Position rookNewPosition;
+                if (whiteTurn) {
+                    if (longCastling) {
+                        kingOldPosition = new Position(4, 7);
+                        kingNewPosition = new Position(2, 7);
+                        rookOldPosition = new Position(0, 7);
+                        rookNewPosition = new Position(3, 7);
+                    } else {
+                        kingOldPosition = new Position(4, 7);
+                        kingNewPosition = new Position(6, 7);
+                        rookOldPosition = new Position(7, 7);
+                        rookNewPosition = new Position(5, 7);
+                    }
+                } else {
+                    if (longCastling) {
+                        kingOldPosition = new Position(4, 0);
+                        kingNewPosition = new Position(2, 0);
+                        rookOldPosition = new Position(0, 0);
+                        rookNewPosition = new Position(3, 0);
+                    } else {
+                        kingOldPosition = new Position(4, 0);
+                        kingNewPosition = new Position(6, 0);
+                        rookOldPosition = new Position(7, 0);
+                        rookNewPosition = new Position(5, 0);
+                    }
+                }
+                Castling castling = new Castling(
+                        kingOldPosition,
+                        kingNewPosition,
+                        rookOldPosition,
+                        rookNewPosition,
+                        longCastling
+                );
+                onMove(castling, false);
             });
         }
     }
