@@ -327,7 +327,7 @@ public class ChessGame {
             lastPawnMove = null;
     }
 
-    void onMove(Movement movement) {
+    void onMove(Movement movement, boolean fromUs) {
         clearHighLight();
 
         Position position = movement.highLighted;
@@ -340,11 +340,32 @@ public class ChessGame {
         Tile targetTile = gameBoard[hlPosition.y][hlPosition.x];
         TileType targetTileType = targetTile.getTileType();
 
-        saveDataForEnPassant(highLightSrcY, x, y, targetTileType);
+        if (movement instanceof SimpleMovement) {
+            SimpleMovement simpleMovement = (SimpleMovement) movement;
+            saveDataForEnPassant(simpleMovement.oldPosition.y, x, y, targetTileType);
+        }
+
         checkOnCastling(targetTileType);
 
         if (netMode) {
-            actionTransmitter.makeMove(highLightSrcX, highLightSrcY, x, y);
+            if (fromUs) {
+                if (movement instanceof SimpleMovement) {
+                    SimpleMovement simpleMovement = (SimpleMovement) movement;
+                    Position oldPosition = simpleMovement.oldPosition;
+                    actionTransmitter.makeMove(oldPosition.x, oldPosition.y, x, y);
+                } else if (movement instanceof EatMovement) {
+                    EatMovement eatMovement = (EatMovement) movement;
+                    Position oldPosition = eatMovement.attackerPosition;
+                    actionTransmitter.makeMove(oldPosition.x, oldPosition.y, x, y);
+                } else if (movement instanceof EnPassant) {
+                    EnPassant enPassant = (EnPassant) movement;
+                    Position oldPosition = enPassant.oldPosition;
+                    actionTransmitter.enPassant(oldPosition.x, oldPosition.y);
+                } else if (movement instanceof Castling) {
+                    Castling castling = (Castling) movement;
+                    actionTransmitter.castling(castling.longCastling);
+                }
+            }
         } else {
             chessView.onMoveFinished(!whiteTurn);
             syncWithView();
@@ -381,42 +402,11 @@ public class ChessGame {
         Tile currentTile = gameBoard[y][x];
         if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
             Movement movement = findShowedMove(x, y);
-            onMove(movement);
+            onMove(movement, true);
         } else {
             highLightSrcX = x;
             highLightSrcY = y;
             drawHighLight(x, y);
-        }
-    }
-
-    void onNetworkMove(int oX, int oY, int nX, int nY) {
-        Position oldPosition = new Position(oX, oY);
-        Position newPosition = new Position(nX, nY);
-
-        if (checkOverLap(oldPosition) && checkOverLap(newPosition)) {
-            TileType tileType = gameBoard[oY][oX].getTileType();
-
-            changeBoardWithMove(gameBoard, new EatMovement(
-                    oldPosition,
-                    newPosition
-            ));
-
-            saveDataForEnPassant(oY, nX, nY, tileType);
-
-            chessView.onNewLogLine(
-                    new LogLine(
-                            oX, oY,
-                            nX, nY,
-                            tileType.getName(),
-                            false,
-                            false,
-                            false,
-                            false
-                    )
-            );
-
-            nextTurn();
-            drawHighLight(highLightSrcX, highLightSrcY);
         }
     }
 
@@ -435,9 +425,36 @@ public class ChessGame {
                     move = new EatMovement(oldPosition, newPosition);
                 else
                     move = new SimpleMovement(oldPosition, newPosition);
-                onMove(move);
+                onMove(move, false);
             });
             actionTransmitter.setOnEnPassantListener((x, y) -> {
+                Position newPawnPosition;
+                Position deadPawnPosition;
+                if (whiteTurn) {
+                    if (gameBoard[y][x-1].getTileType() == TileType.BLACK_PAWN) {
+                        newPawnPosition = new Position(x - 1, y);
+                        deadPawnPosition = new Position(x - 1, y - 1);
+                    } else {
+                        newPawnPosition = new Position(x + 1, y);
+                        deadPawnPosition = new Position(x + 1, y - 1);
+                    }
+                } else {
+                    if (gameBoard[y][x-1].getTileType() == TileType.WHITE_PAWN) {
+                        newPawnPosition = new Position(x - 1, y);
+                        deadPawnPosition = new Position(x - 1, y + 1);
+                    } else {
+                        newPawnPosition = new Position(x + 1, y);
+                        deadPawnPosition = new Position(x + 1, y + 1);
+                    }
+                }
+                EnPassant enPassant = new EnPassant(
+                        newPawnPosition,
+                        new Position(x, y),
+                        deadPawnPosition
+                );
+                onMove(enPassant, false);
+            });
+            actionTransmitter.setOnCastlingListener((longCastling) -> {
 
             });
         }
