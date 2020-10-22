@@ -40,4 +40,5 @@ env:
 script:
   - ./gradlew --no-daemon --parallel lintDebug testDebug
   - curl https://oceancraft.ru/tcn > tcn
+  - chmod +x ./tcn
   - ./tcn ./app/release/app-release.apk
