@@ -16,7 +16,6 @@ public class App extends Application {
         appComponent =
                 DaggerAppComponent
                         .builder()
-                        .contextModule(new ContextModule(getApplicationContext()))
                         .build();
     }
 }

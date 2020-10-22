@@ -5,6 +5,7 @@ plugins {
 android {
     compileSdkVersion 29
     buildToolsVersion "30.0.2"
+    ndkVersion "21.3.6528147"
 
     defaultConfig {
         applicationId "com.example.chess"
@@ -24,7 +25,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
