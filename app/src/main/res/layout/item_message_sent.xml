@@ -16,8 +16,8 @@
             android:textColor="@color/text_chat_our"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="Test"
-            android:fontFamily="@font/roboto_mono_medium" android:textSize="16sp" android:layout_marginRight="8dp"
+            tools:text="Hello"
+            android:fontFamily="@font/roboto_mono_medium" android:textSize="14sp" android:layout_marginRight="8dp"
     />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
