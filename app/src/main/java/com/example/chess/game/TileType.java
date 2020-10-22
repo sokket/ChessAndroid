@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum TileType {
-    LIGHT_BISHOP(TileType::bishopMoves, true, 'B'),
-    LIGHT_KING(TileType::kingMoves, true, 'K'),
-    LIGHT_KNIGHT(TileType::knightMoves, true, 'N'),
-    LIGHT_PAWN(TileType::whitePawnMoves, true, ' '),
-    LIGHT_QUEEN(TileType::queenMoves, true, 'Q'),
-    LIGHT_ROOK(TileType::rookMoves, true, 'R'),
+    WHITE_BISHOP(TileType::bishopMoves, true, 'B'),
+    WHITE_KING(TileType::kingMoves, true, 'K'),
+    WHITE_KNIGHT(TileType::knightMoves, true, 'N'),
+    WHITE_PAWN(TileType::whitePawnMoves, true, ' '),
+    WHITE_QUEEN(TileType::queenMoves, true, 'Q'),
+    WHITE_ROOK(TileType::rookMoves, true, 'R'),
     BLANK(TileType::blankMoves, true, 'b'),
     BLACK_BISHOP(TileType::bishopMoves, false, 'B'),
     BLACK_KING(TileType::kingMoves, false, 'K'),
@@ -30,10 +30,10 @@ public enum TileType {
                 } : new Position[]{
                         new Position(x, y - 1)
                 }, new Position[]{
-                        new Position(x - 1, y - 1)
-                }, new Position[]{
-                        new Position(x + 1, y - 1)
-                }
+                new Position(x - 1, y - 1)
+        }, new Position[]{
+                new Position(x + 1, y - 1)
+        }
         };
     }
 
@@ -45,10 +45,10 @@ public enum TileType {
                 } : new Position[]{
                         new Position(x, y + 1)
                 }, new Position[]{
-                        new Position(x - 1, y + 1)
-                }, new Position[]{
-                        new Position(x + 1, y + 1)
-                }
+                new Position(x - 1, y + 1)
+        }, new Position[]{
+                new Position(x + 1, y + 1)
+        }
         };
     }
 
@@ -78,30 +78,26 @@ public enum TileType {
 
     private static Position[][] kingMoves(int x, int y) {
         return new Position[][]{
-                new Position[]{
-                        new Position(x, y - 1),
-                },
-                new Position[]{
-                        new Position(x, y + 1),
-                },
-                new Position[]{
-                        new Position(x + 1, y - 1)
-                },
-                new Position[]{
-                        new Position(x - 1, y - 1)
-                },
-                new Position[]{
-                        new Position(x + 1, y + 1)
-                },
-                new Position[]{
-                        new Position(x - 1, y + 1)
-                },
-                new Position[]{
-                        new Position(x + 1, y),
-                },
-                new Position[]{
-                        new Position(x - 1, y),
-                },
+                new Position[]{new Position(x, y - 1)},
+                new Position[]{new Position(x, y + 1)},
+                new Position[]{new Position(x + 1, y - 1)},
+                new Position[]{new Position(x - 1, y - 1)},
+                new Position[]{new Position(x + 1, y + 1)},
+                new Position[]{new Position(x - 1, y + 1)},
+                new Position[]{new Position(x + 1, y)},
+                new Position[]{new Position(x - 1, y)},
+                y == 0 || y == 7 ?
+                        new Position[]{
+                                new Position(x + 1, y),
+                                new Position(x + 2, y)
+                        } : new Position[]{new Position(-1, -1)},
+                y == 0 || y == 7 ?
+                        new Position[]{
+                                new Position(x - 1, y),
+                                new Position(x - 2, y),
+                                new Position(x - 3, y),
+                                new Position(x - 4, y)
+                        } : new Position[]{new Position(-1, -1)}
         };
     }
 

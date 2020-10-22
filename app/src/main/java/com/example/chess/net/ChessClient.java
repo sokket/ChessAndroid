@@ -1,10 +1,8 @@
 package com.example.chess.net;
 
-import com.example.chess.game.MoveListener;
-
 public class ChessClient {
 
-    private MoveListener moveListener;
+    private EventListener eventListener;
 
     public ChessClient() {
         System.loadLibrary("native-lib");
@@ -16,8 +14,15 @@ public class ChessClient {
 
     public native boolean connect(String serverAddress, int port);
 
-    public native void streamMoves(MoveListener moveListener);
+    public native void streamEvents(EventListener eventListener);
 
     public native void move(int xOld, int yOld, int xNew, int yNew);
 
+    public native void sendMessage(String text);
+
+    public native void enPassant(int x, int y);
+
+    public native void castling(boolean longCastling);
+
+    public native void disconnect();
 }

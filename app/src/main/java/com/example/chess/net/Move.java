@@ -1,4 +1,4 @@
-package com.example.chess.game;
+package com.example.chess.net;
 
 public class Move {
     public int oldX;

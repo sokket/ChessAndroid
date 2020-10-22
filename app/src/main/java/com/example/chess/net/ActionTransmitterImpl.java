@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.Looper;
 
 import com.example.chess.game.ActionTransmitter;
+import com.example.chess.game.CastlingListener;
+import com.example.chess.game.EnPassantListener;
 import com.example.chess.game.MoveListener;
 
 import java.util.concurrent.ArrayBlockingQueue;
@@ -11,15 +13,23 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class ActionTransmitterImpl implements ActionTransmitter {
-    private final ChessClient chessClient;
+    private final ChessClient chessClient = new ChessClient();
 
-    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-            3,
-            4,
-            1,
-            TimeUnit.SECONDS,
+    private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
+            2,
+            2,
+            0,
+            TimeUnit.MICROSECONDS,
             new ArrayBlockingQueue<>(10)
     );
+
+    private MoveListener moveListener = null;
+    private CastlingListener castlingListener = null;
+    private EnPassantListener enPassantListener = null;
+    private MessageListener messageListener = null;
+    private RoomFullListener roomFullListener = null;
+
+    private boolean eventListenerStarted = false;
 
     private void runOnThreadPool(Runnable runnable) {
         threadPoolExecutor.execute(runnable);
@@ -29,17 +39,76 @@ public class ActionTransmitterImpl implements ActionTransmitter {
         new Handler(Looper.getMainLooper()).post(runnable);
     }
 
-    public ActionTransmitterImpl() {
-        chessClient = new ChessClient();
+    private void processEvent(Object event) {
+        if (event instanceof Move && moveListener != null) {
+            Move move = (Move) event;
+            moveListener.onMakeMove(move.oldX, move.oldY, move.newX, move.newY);
+        } else if (event instanceof EnPassant && enPassantListener != null) {
+            EnPassant enPassant = (EnPassant) event;
+            enPassantListener.onEnPassant(enPassant.x, enPassant.y);
+        } else if (event instanceof Castling && castlingListener != null) {
+            Castling castling = (Castling) event;
+            castlingListener.onCastling(castling.longCastling);
+        } else if (event instanceof Message && messageListener != null) {
+            Message message = (Message) event;
+            messageListener.onNewMessage(message.text);
+        } else if (event instanceof ServiceMessage && roomFullListener != null) {
+            ServiceMessage serviceMessage = (ServiceMessage) event;
+            if (serviceMessage == ServiceMessage.ROOM_FULL)
+                roomFullListener.onFull();
+        }
+    }
+
+    private void startEventListener() {
+        if (!eventListenerStarted) {
+            eventListenerStarted = true;
+            runOnThreadPool(
+                    () -> chessClient.streamEvents(
+                            event -> runOnUIThread(
+                                    () -> processEvent(event))));
+        }
+    }
+
+    public void setRoomFullListener(RoomFullListener roomFullListener) {
+        startEventListener();
+        this.roomFullListener = roomFullListener;
+    }
+
+    public void removeRoomFullListener() {
+        this.roomFullListener = null;
+    }
+
+    @Override
+    public void setOnEnPassantListener(EnPassantListener enPassantListener) {
+        startEventListener();
+        this.enPassantListener = enPassantListener;
+    }
+
+    @Override
+    public void setOnCastlingListener(CastlingListener castlingListener) {
+        startEventListener();
+        this.castlingListener = castlingListener;
+    }
+
+    @Override
+    public void setOnMakeMoveListener(MoveListener moveListener) {
+        startEventListener();
+        this.moveListener = moveListener;
+    }
+
+    public void setMessageListener(MessageListener messageListener) {
+        startEventListener();
+        this.messageListener = messageListener;
     }
 
     public void connect(String address, int port, Listener success, Listener error) {
+        eventListenerStarted = false;
         runOnThreadPool(() -> {
             boolean connect = chessClient.connect(address, port);
             runOnUIThread(() -> {
-                if (connect)
+                if (connect) {
                     success.invoke();
-                else
+                } else
                     error.invoke();
             });
         });
@@ -59,26 +128,41 @@ public class ActionTransmitterImpl implements ActionTransmitter {
         runOnThreadPool(() -> {
             String key = chessClient.newRoom();
             runOnUIThread(() -> {
-                if (!key.equals("ERROR"))
+                if (!key.equals("ERROR")) {
                     listener.onRoomCreated(key);
-                else
+                } else
                     error.invoke();
             });
         });
     }
 
     @Override
-    public void setOnMakeMoveListener(MoveListener moveListener) {
-        runOnThreadPool(() ->
-                chessClient.streamMoves((xOld, yOld, xNew, yNew) ->
-                        runOnUIThread(() ->
-                                moveListener.onMakeMove(xOld, yOld, xNew, yNew)
-                        )
-                ));
+    public void makeMove(int xOld, int yOld, int xNew, int yNew) {
+        runOnThreadPool(() -> chessClient.move(xOld, yOld, xNew, yNew));
     }
 
     @Override
-    public void makeMove(int xOld, int yOld, int xNew, int yNew) {
-        runOnThreadPool(() -> chessClient.move(xOld, yOld, xNew, yNew));
+    public void enPassant(int x, int y) {
+        runOnThreadPool(() -> chessClient.enPassant(x, y));
+    }
+
+    @Override
+    public void castling(boolean longCastling) {
+        runOnThreadPool(() -> chessClient.castling(longCastling));
+    }
+
+    public void sendMessage(String text) {
+        runOnThreadPool(() -> chessClient.sendMessage(text));
+    }
+
+    public void unbind() {
+        runOnThreadPool(chessClient::disconnect);
+        eventListenerStarted = false;
+
+        castlingListener = null;
+        messageListener = null;
+        roomFullListener = null;
+        enPassantListener = null;
+        moveListener = null;
     }
 }

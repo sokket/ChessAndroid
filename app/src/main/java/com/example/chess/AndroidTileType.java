@@ -5,12 +5,12 @@ import androidx.annotation.DrawableRes;
 import com.example.chess.game.TileType;
 
 public enum AndroidTileType {
-    LIGHT_BISHOP(R.drawable.ic_chess_blt45, TileType.LIGHT_BISHOP),
-    LIGHT_KING(R.drawable.ic_chess_klt45, TileType.LIGHT_KING),
-    LIGHT_KNIGHT(R.drawable.ic_chess_nlt45, TileType.LIGHT_KNIGHT),
-    LIGHT_PAWN(R.drawable.ic_chess_plt45, TileType.LIGHT_PAWN),
-    LIGHT_QUEEN(R.drawable.ic_chess_qlt45, TileType.LIGHT_QUEEN),
-    LIGHT_ROOK(R.drawable.ic_chess_rlt45, TileType.LIGHT_ROOK),
+    LIGHT_BISHOP(R.drawable.ic_chess_blt45, TileType.WHITE_BISHOP),
+    LIGHT_KING(R.drawable.ic_chess_klt45, TileType.WHITE_KING),
+    LIGHT_KNIGHT(R.drawable.ic_chess_nlt45, TileType.WHITE_KNIGHT),
+    LIGHT_PAWN(R.drawable.ic_chess_plt45, TileType.WHITE_PAWN),
+    LIGHT_QUEEN(R.drawable.ic_chess_qlt45, TileType.WHITE_QUEEN),
+    LIGHT_ROOK(R.drawable.ic_chess_rlt45, TileType.WHITE_ROOK),
     BLANK(-1, TileType.BLANK),
     BLACK_BISHOP(R.drawable.ic_chess_bdt45, TileType.BLACK_BISHOP),
     BLACK_KING(R.drawable.ic_chess_kdt45, TileType.BLACK_KING),
