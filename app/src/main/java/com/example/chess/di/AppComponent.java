@@ -1,10 +1,6 @@
 package com.example.chess.di;
 
-import com.example.chess.GameFragment;
-import com.example.chess.LaunchFragment;
-import com.example.chess.MainActivity;
-import com.example.chess.NetworkGameSetupFragment;
-import com.example.chess.WaitingFragment;
+import com.example.chess.*;
 
 import javax.inject.Singleton;
 
@@ -22,4 +18,6 @@ public interface AppComponent {
     void inject(WaitingFragment waitingFragment);
 
     void inject(GameFragment gameFragment);
+
+    void inject(ChatFragment chatFragment);
 }

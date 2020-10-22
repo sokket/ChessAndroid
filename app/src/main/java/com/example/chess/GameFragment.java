@@ -4,25 +4,19 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
+import android.view.WindowManager;
 import android.widget.GridLayout;
 import android.widget.ImageView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.adapter.FragmentStateAdapter;
+import androidx.viewpager2.widget.ViewPager2;
 import com.bumptech.glide.Glide;
-import com.example.chess.game.ChessGame;
-import com.example.chess.game.ChessView;
-import com.example.chess.game.LogLine;
-import com.example.chess.game.OnPressListener;
-import com.example.chess.game.ResetOnPressListener;
-import com.example.chess.game.TileType;
+import com.example.chess.game.*;
 import com.example.chess.net.ActionTransmitterImpl;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -34,9 +28,10 @@ public class GameFragment extends Fragment implements ChessView {
     ActionTransmitterImpl actionTransmitter;
 
     private OnPressListener onPressListener;
-    private ResetOnPressListener resetOnPressListener;
-    private RecyclerView recyclerView;
     private final CardView[][] views = new CardView[8][8];
+
+    private ViewPager2 viewPager;
+    private GameViewModel gameViewModel;
 
     private int whiteColor;
     private int blackColor;
@@ -62,12 +57,26 @@ public class GameFragment extends Fragment implements ChessView {
         App app = (App) requireActivity().getApplication();
         app.appComponent.inject(this);
         super.onCreate(savedInstanceState);
+
+        gameViewModel = new ViewModelProvider(requireActivity()).get(GameViewModel.class);
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_game, container, false);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        requireActivity().getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
 
     @Override
@@ -78,10 +87,6 @@ public class GameFragment extends Fragment implements ChessView {
         blackColor = ContextCompat.getColor(requireContext(), R.color.blackTile);
         highLightColor = ContextCompat.getColor(requireContext(), R.color.purple_200);
 
-        recyclerView = view.findViewById(R.id.rv);
-        recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-        recyclerView.setAdapter(new GameLogAdapter(LayoutInflater.from(requireContext())));
-
         boolean netGame = requireArguments().getBoolean("net");
         boolean isWhite = requireArguments().getBoolean("white");
 
@@ -89,6 +94,10 @@ public class GameFragment extends Fragment implements ChessView {
             startNetworkGame(actionTransmitter, isWhite);
         else
             startOfflineGame();
+
+        viewPager = view.findViewById(R.id.pager);
+        FragmentStateAdapter pagerAdapter = new GamePagerAdapter(this, netGame);
+        viewPager.setAdapter(pagerAdapter);
     }
 
     private void loadViews(boolean whiteGame) {
@@ -117,15 +126,13 @@ public class GameFragment extends Fragment implements ChessView {
     }
 
     void startNetworkGame(ActionTransmitterImpl actionTransmitter, boolean isWhite) {
-        actionTransmitter.setMessageListener(text ->
-                Snackbar.make(requireView(), text, Snackbar.LENGTH_LONG).show());
-
-        requireView().findViewById(R.id.message_send).setOnClickListener(v -> {
-            EditText editText = requireView().findViewById(R.id.message_prompt);
-            String text = editText.getText().toString();
-            actionTransmitter.sendMessage(text);
+        actionTransmitter.setMessageListener(text -> {
+            if (viewPager.getCurrentItem() == 0)
+                Snackbar.make(requireView(), text, Snackbar.LENGTH_LONG)
+                        .setAction("answer", v -> viewPager.setCurrentItem(1, true))
+                        .show();
+            gameViewModel.addMessage(new Message(text, false));
         });
-
 
         chessGame = new ChessGame(this, actionTransmitter, isWhite);
         loadViews(isWhite);
@@ -158,24 +165,17 @@ public class GameFragment extends Fragment implements ChessView {
 
     @Override
     public void setResetOnPressListener(ResetOnPressListener resetOnPressListener) {
-        this.resetOnPressListener = resetOnPressListener;
+
     }
 
     @Override
     public void onNewLogLine(LogLine logLine) {
-        GameLogAdapter adapter = (GameLogAdapter) recyclerView.getAdapter();
-        if (adapter != null) {
-            adapter.addLine(logLine);
-            recyclerView.scrollToPosition(adapter.getItemCount() - 1);
-        }
+        gameViewModel.addLogLine(logLine);
     }
 
     @Override
     public void cleanLog() {
-        GameLogAdapter adapter = (GameLogAdapter) recyclerView.getAdapter();
-        if (adapter != null) {
-            adapter.clean();
-        }
+
     }
 
     @Override
@@ -197,5 +197,7 @@ public class GameFragment extends Fragment implements ChessView {
     public void onDestroy() {
         super.onDestroy();
         actionTransmitter.unbind();
+        gameViewModel.clearLogs();
+        gameViewModel.clearMessages();
     }
 }

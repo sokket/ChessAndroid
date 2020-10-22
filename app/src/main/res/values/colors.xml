@@ -9,4 +9,9 @@
     <color name="white">#FFFFFFFF</color>
     <color name="blackTile">#969696</color>
     <color name="whiteTile">#FFFFFFFF</color>
+    <color name="chat_our">#ECECEC</color>
+    <color name="text_chat">#FFFFFF</color>
+    <color name="text_chat_our">#1B1B1B</color>
+    <color name="chat_net">#388E3C</color>
+    <color name="statusBar">#B3FFFFFF</color>
 </resources>

@@ -14,21 +14,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GameLogAdapter extends RecyclerView.Adapter<GameLogAdapter.GameLogViewHolder> {
-    List<LogLine> listOfLog = new ArrayList<>();
-    final LayoutInflater layoutInflater;
+    private final List<LogLine> listOfLog = new ArrayList<>();
+    private final LayoutInflater layoutInflater;
 
     public GameLogAdapter(LayoutInflater layoutInflater) {
         this.layoutInflater = layoutInflater;
     }
 
-    public void addLine(LogLine logLine) {
-        listOfLog.add(logLine);
-        notifyItemInserted(listOfLog.size() - 1);
-    }
-
-    public void clean() {
-        listOfLog.clear();
-        notifyDataSetChanged();
+    public void update(List<LogLine> logLines) {
+        if (logLines.isEmpty()) {
+            listOfLog.clear();
+            notifyDataSetChanged();
+        } else {
+            LogLine last = logLines.get(logLines.size() - 1);
+            listOfLog.add(last);
+            notifyItemInserted(listOfLog.size() - 1);
+        }
     }
 
     @NonNull

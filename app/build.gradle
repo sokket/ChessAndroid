@@ -51,6 +51,18 @@ android {
 }
 
 dependencies {
+    def lifecycle_version = "2.2.0"
+
+    // ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel:$lifecycle_version"
+    // LiveData
+    implementation "androidx.lifecycle:lifecycle-livedata:$lifecycle_version"
+    // Lifecycles only (without ViewModel or LiveData)
+    implementation "androidx.lifecycle:lifecycle-runtime:$lifecycle_version"
+
+    // Saved state module for ViewModel
+    implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version"
+
     implementation 'ru.terrakok.cicerone:cicerone:5.1.1'
     implementation 'com.google.dagger:dagger:2.28.3'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
