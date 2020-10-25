@@ -34,13 +34,6 @@ void disconnect() {
     }
 }
 
-typedef struct Position {
-    char xO;
-    char yO;
-    char xN;
-    char yN;
-} Position;
-
 int recv_all(int sock, void *data, int len) {
     auto *data_ptr = (unsigned char *) data;
     int num_recv;
@@ -169,14 +162,14 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
     unsigned char type;
     while (recv_all(sock_fd, &type, sizeof(char)))
         if (type == PKG_CLIENT_MOVE) {
-            Position position;
+            char position[4];
             if (!recv_all(sock_fd, &position, sizeof(position)))
                 break;
 
-            jint x1 = (unsigned char) position.xO;
-            jint y1 = (unsigned char) position.yO;
-            jint x2 = (unsigned char) position.xN;
-            jint y2 = (unsigned char) position.yN;
+            jint x1 = (unsigned char) position[0];
+            jint y1 = (unsigned char) position[1];
+            jint x2 = (unsigned char) position[2];
+            jint y2 = (unsigned char) position[3];
 
             jclass cls = env->FindClass("com/example/chess/net/Move");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(IIII)V");
@@ -240,11 +233,11 @@ Java_com_example_chess_net_ChessClient_move(JNIEnv *env, jobject thiz, jint x_ol
     int type = 2;
     write(sock_fd, &type, 1);
 
-    Position position;
-    position.xO = x_old;
-    position.yO = y_old;
-    position.xN = x_new;
-    position.yN = y_new;
+    char position[4];
+    position[0] = x_old;
+    position[1] = y_old;
+    position[2] = x_new;
+    position[3] = y_new;
     int wr = write(sock_fd, &position, sizeof(position));
     if (wr < 1)
         __android_log_print(ANDROID_LOG_ERROR, "ERR", "WR error");
