@@ -77,9 +77,9 @@ Java_com_example_chess_net_ChessClient_join(JNIEnv *env, jobject thiz, jstring k
     if (send_all(sock_fd, key_str, 7)) {
         unsigned char status;
         return
-            recv_all(sock_fd, &status, sizeof(char))
-            ? status == PKG_CLIENT_JOINED
-            : false;
+                recv_all(sock_fd, &status, sizeof(char))
+                ? status == PKG_CLIENT_JOINED
+                : false;
     } else
         return false;
 }
@@ -144,11 +144,6 @@ Java_com_example_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
     return send_all(sock_fd, proto.c_str(), proto.length());
 }
 
-typedef struct enPassant {
-    unsigned char x;
-    unsigned char y;
-} EnPassant;
-
 extern "C" JNIEXPORT void JNICALL
 Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
                                                     jobject event_listener) {
@@ -171,13 +166,14 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             jint x2 = (unsigned char) position[2];
             jint y2 = (unsigned char) position[3];
 
-            jclass cls = env->FindClass("com/example/chess/net/Move");
+            jclass cls = env->FindClass("com/oceancraft/chess/net/Move");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(IIII)V");
             jobject object = env->NewObject(cls, constructor, x1, y1, x2, y2);
             env->CallVoidMethod(event_listener, method, object);
         } else if (type == PKG_CLIENT_ROOM_FULL) {
-            jclass cls = env->FindClass("com/example/chess/net/ServiceMessage");
-            jfieldID field = env->GetStaticFieldID(cls, "ROOM_FULL", "Lcom/example/chess/net/ServiceMessage;");
+            jclass cls = env->FindClass("com/oceancraft/chess/net/ServiceMessage");
+            jfieldID field = env->GetStaticFieldID(cls, "ROOM_FULL",
+                                                   "Lcom/example/chess/net/ServiceMessage;");
             jobject msg = env->GetStaticObjectField(cls, field);
             env->CallVoidMethod(event_listener, method, msg);
         } else if (type == PKG_CLIENT_CASTLING) {
@@ -185,19 +181,19 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             if (!recv_all(sock_fd, &long_castling, sizeof(long_castling)))
                 break;
 
-            jclass cls = env->FindClass("com/example/chess/net/Castling");
+            jclass cls = env->FindClass("com/oceancraft/chess/net/Castling");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(Z)V");
             jobject object = env->NewObject(cls, constructor, long_castling);
             env->CallVoidMethod(event_listener, method, object);
         } else if (type == PKG_CLIENT_EN_PASSANT) {
-            EnPassant enPassant;
-            if (!recv_all(sock_fd, &enPassant, sizeof(enPassant)))
+            unsigned char enPassant[2];
+            if (!recv_all(sock_fd, enPassant, sizeof(enPassant)))
                 break;
 
-            jint x = enPassant.x;
-            jint y = enPassant.y;
+            jint x = enPassant[0];
+            jint y = enPassant[1];
 
-            jclass cls = env->FindClass("com/example/chess/net/EnPassant");
+            jclass cls = env->FindClass("com/oceancraft/chess/net/EnPassant");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(II)V");
             jobject object = env->NewObject(cls, constructor, x, y);
             env->CallVoidMethod(event_listener, method, object);
@@ -218,7 +214,7 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             jstring str = env->NewStringUTF(message);
             free(message);
 
-            jclass cls = env->FindClass("com/example/chess/net/Message");
+            jclass cls = env->FindClass("com/oceancraft/chess/net/Message");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(Ljava/lang/String;)V");
             jobject object = env->NewObject(cls, constructor, str);
             env->CallVoidMethod(event_listener, method, object);
@@ -260,12 +256,11 @@ Java_com_example_chess_net_ChessClient_enPassant(JNIEnv *env, jobject thiz, jint
     if (!send_all(sock_fd, &type, sizeof(char)))
         return;
 
-    EnPassant enPassant = EnPassant {
-        static_cast<unsigned char>(x),
-        static_cast<unsigned char>(y)
-    };
+    unsigned char enPassant[2];
+    enPassant[0] = static_cast<unsigned char>(x);
+    enPassant[1] = static_cast<unsigned char>(y);
 
-    send_all(sock_fd, &enPassant, sizeof(enPassant));
+    send_all(sock_fd, enPassant, sizeof(enPassant));
 }
 
 extern "C" JNIEXPORT void JNICALL
