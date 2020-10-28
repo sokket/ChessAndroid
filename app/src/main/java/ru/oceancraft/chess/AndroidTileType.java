@@ -2,8 +2,6 @@ package ru.oceancraft.chess;
 
 import androidx.annotation.DrawableRes;
 
-import com.oceancraft.chess.R;
-
 import ru.oceancraft.chess.game.TileType;
 
 public enum AndroidTileType {

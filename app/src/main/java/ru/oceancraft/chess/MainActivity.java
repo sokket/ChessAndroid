@@ -2,13 +2,11 @@ package ru.oceancraft.chess;
 
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
-import com.oceancraft.chess.R;
-
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.inject.Inject;
@@ -30,10 +28,10 @@ public class MainActivity extends AppCompatActivity {
     Navigator navigator = new SupportAppNavigator(this, R.id.mainView) {
         @Override
         protected void setupFragmentTransaction(
-                @NotNull Command command,
+                @NonNull Command command,
                 @Nullable Fragment currentFragment,
                 @Nullable Fragment nextFragment,
-                @NotNull FragmentTransaction fragmentTransaction
+                @NonNull FragmentTransaction fragmentTransaction
         ) {
             fragmentTransaction.setCustomAnimations(
                     R.anim.fragment_open_enter,

@@ -65,7 +65,7 @@ int send_all(int sock, const void *data, unsigned int len) {
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_example_chess_net_ChessClient_join(JNIEnv *env, jobject thiz, jstring key) {
+Java_ru_oceancraft_chess_net_ChessClient_join(JNIEnv *env, jobject thiz, jstring key) {
     char type = 1;
     if (write(sock_fd, &type, 1) < 1)
         return false;
@@ -86,7 +86,7 @@ Java_com_example_chess_net_ChessClient_join(JNIEnv *env, jobject thiz, jstring k
 
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_com_example_chess_net_ChessClient_newRoom(JNIEnv *env, jobject thiz) {
+Java_ru_oceancraft_chess_net_ChessClient_newRoom(JNIEnv *env, jobject thiz) {
     char type = 0;
     if (!send_all(sock_fd, &type, 1))
         return env->NewStringUTF("ERROR");
@@ -105,8 +105,8 @@ Java_com_example_chess_net_ChessClient_newRoom(JNIEnv *env, jobject thiz) {
 
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_com_example_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
-                                               jstring server_address, jint port) {
+Java_ru_oceancraft_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
+                                                 jstring server_address, jint port) {
     disconnect();
 
     jboolean isCopy = true;
@@ -145,8 +145,8 @@ Java_com_example_chess_net_ChessClient_connect(JNIEnv *env, jobject thiz,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
-                                                    jobject event_listener) {
+Java_ru_oceancraft_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
+                                                      jobject event_listener) {
 
     jmethodID method = env->GetMethodID(
             env->GetObjectClass(event_listener),
@@ -166,14 +166,14 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             jint x2 = (unsigned char) position[2];
             jint y2 = (unsigned char) position[3];
 
-            jclass cls = env->FindClass("com/oceancraft/chess/net/Move");
+            jclass cls = env->FindClass("ru/oceancraft/chess/net/Move");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(IIII)V");
             jobject object = env->NewObject(cls, constructor, x1, y1, x2, y2);
             env->CallVoidMethod(event_listener, method, object);
         } else if (type == PKG_CLIENT_ROOM_FULL) {
-            jclass cls = env->FindClass("com/oceancraft/chess/net/ServiceMessage");
+            jclass cls = env->FindClass("ru/oceancraft/chess/net/ServiceMessage");
             jfieldID field = env->GetStaticFieldID(cls, "ROOM_FULL",
-                                                   "Lcom/example/chess/net/ServiceMessage;");
+                                                   "Lru/oceancraft/chess/net/ServiceMessage;");
             jobject msg = env->GetStaticObjectField(cls, field);
             env->CallVoidMethod(event_listener, method, msg);
         } else if (type == PKG_CLIENT_CASTLING) {
@@ -181,7 +181,7 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             if (!recv_all(sock_fd, &long_castling, sizeof(long_castling)))
                 break;
 
-            jclass cls = env->FindClass("com/oceancraft/chess/net/Castling");
+            jclass cls = env->FindClass("ru/oceancraft/chess/net/Castling");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(Z)V");
             jobject object = env->NewObject(cls, constructor, long_castling);
             env->CallVoidMethod(event_listener, method, object);
@@ -193,7 +193,7 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             jint x = enPassant[0];
             jint y = enPassant[1];
 
-            jclass cls = env->FindClass("com/oceancraft/chess/net/EnPassant");
+            jclass cls = env->FindClass("ru/oceancraft/chess/net/EnPassant");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(II)V");
             jobject object = env->NewObject(cls, constructor, x, y);
             env->CallVoidMethod(event_listener, method, object);
@@ -214,7 +214,7 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
             jstring str = env->NewStringUTF(message);
             free(message);
 
-            jclass cls = env->FindClass("com/oceancraft/chess/net/Message");
+            jclass cls = env->FindClass("ru/oceancraft/chess/net/Message");
             jmethodID constructor = env->GetMethodID(cls, "<init>", "(Ljava/lang/String;)V");
             jobject object = env->NewObject(cls, constructor, str);
             env->CallVoidMethod(event_listener, method, object);
@@ -224,8 +224,8 @@ Java_com_example_chess_net_ChessClient_streamEvents(JNIEnv *env, jobject thiz,
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_chess_net_ChessClient_move(JNIEnv *env, jobject thiz, jint x_old, jint y_old,
-                                            jint x_new, jint y_new) {
+Java_ru_oceancraft_chess_net_ChessClient_move(JNIEnv *env, jobject thiz, jint x_old, jint y_old,
+                                              jint x_new, jint y_new) {
     int type = 2;
     write(sock_fd, &type, 1);
 
@@ -240,7 +240,7 @@ Java_com_example_chess_net_ChessClient_move(JNIEnv *env, jobject thiz, jint x_ol
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_chess_net_ChessClient_sendMessage(JNIEnv *env, jobject thiz, jstring text) {
+Java_ru_oceancraft_chess_net_ChessClient_sendMessage(JNIEnv *env, jobject thiz, jstring text) {
     jboolean isCopy = false;
     const char *str = env->GetStringUTFChars(text, &isCopy);
     unsigned char pkg_type = 100;
@@ -251,7 +251,7 @@ Java_com_example_chess_net_ChessClient_sendMessage(JNIEnv *env, jobject thiz, js
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_chess_net_ChessClient_enPassant(JNIEnv *env, jobject thiz, jint x, jint y) {
+Java_ru_oceancraft_chess_net_ChessClient_enPassant(JNIEnv *env, jobject thiz, jint x, jint y) {
     unsigned char type = PKG_EN_PASSANT;
     if (!send_all(sock_fd, &type, sizeof(char)))
         return;
@@ -264,7 +264,8 @@ Java_com_example_chess_net_ChessClient_enPassant(JNIEnv *env, jobject thiz, jint
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_chess_net_ChessClient_castling(JNIEnv *env, jobject thiz, jboolean long_castling) {
+Java_ru_oceancraft_chess_net_ChessClient_castling(JNIEnv *env, jobject thiz,
+                                                  jboolean long_castling) {
     unsigned char type = PKG_CASTLING;
     if (!send_all(sock_fd, &type, sizeof(char)))
         return;
@@ -275,6 +276,6 @@ Java_com_example_chess_net_ChessClient_castling(JNIEnv *env, jobject thiz, jbool
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_com_example_chess_net_ChessClient_disconnect(JNIEnv *env, jobject thiz) {
+Java_ru_oceancraft_chess_net_ChessClient_disconnect(JNIEnv *env, jobject thiz) {
     disconnect();
 }

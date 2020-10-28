@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.cardview.widget.CardView;
@@ -15,21 +16,19 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
-import com.bumptech.glide.Glide;
-import com.oceancraft.chess.R;
-import com.oceancraft.chess.game.*;
 
-import ru.oceancraft.chess.game.ChessGame;
-import ru.oceancraft.chess.game.ChessView;
-import ru.oceancraft.chess.game.OnPressListener;
-import ru.oceancraft.chess.game.ResetOnPressListener;
-import ru.oceancraft.chess.game.TileType;
-import ru.oceancraft.chess.net.ActionTransmitterImpl;
+import com.bumptech.glide.Glide;
 import com.google.android.material.snackbar.Snackbar;
 
 import javax.inject.Inject;
 
+import ru.oceancraft.chess.game.ChessGame;
+import ru.oceancraft.chess.game.ChessView;
 import ru.oceancraft.chess.game.LogLine;
+import ru.oceancraft.chess.game.OnPressListener;
+import ru.oceancraft.chess.game.ResetOnPressListener;
+import ru.oceancraft.chess.game.TileType;
+import ru.oceancraft.chess.net.ActionTransmitterImpl;
 
 public class GameFragment extends Fragment implements ChessView {
 

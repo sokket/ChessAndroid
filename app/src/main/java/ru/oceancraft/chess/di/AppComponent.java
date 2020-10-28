@@ -1,7 +1,5 @@
 package ru.oceancraft.chess.di;
 
-import com.oceancraft.chess.*;
-
 import javax.inject.Singleton;
 
 import dagger.Component;

@@ -8,12 +8,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.oceancraft.chess.R;
-
-import ru.oceancraft.chess.game.LogLine;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import ru.oceancraft.chess.game.LogLine;
 
 public class GameLogAdapter extends RecyclerView.Adapter<GameLogAdapter.GameLogViewHolder> {
     private final List<LogLine> listOfLog = new ArrayList<>();
