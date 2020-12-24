@@ -3,9 +3,9 @@ package ru.oceancraft.chess.net;
 import android.os.Handler;
 import android.os.Looper;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import ru.oceancraft.chess.model.ActionTransmitter;
 import ru.oceancraft.chess.model.CastlingListener;
@@ -15,13 +15,10 @@ import ru.oceancraft.chess.model.MoveListener;
 public class ActionTransmitterImpl implements ActionTransmitter {
     private final ChessClient chessClient = new ChessClient();
 
-    private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(
-            2,
-            2,
-            0,
-            TimeUnit.MICROSECONDS,
-            new ArrayBlockingQueue<>(10)
-    );
+    private final Handler uiThreadHandler = new Handler(Looper.getMainLooper());
+    private final ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
+
+    private final AtomicBoolean eventListenerRunning = new AtomicBoolean(false);
 
     private MoveListener moveListener = null;
     private CastlingListener castlingListener = null;
@@ -29,14 +26,12 @@ public class ActionTransmitterImpl implements ActionTransmitter {
     private MessageListener messageListener = null;
     private RoomFullListener roomFullListener = null;
 
-    private boolean eventListenerStarted = false;
-
-    private void runOnThreadPool(Runnable runnable) {
-        threadPoolExecutor.execute(runnable);
+    private void runOnSendThread(Runnable runnable) {
+        singleThreadExecutor.execute(runnable);
     }
 
     private void runOnUIThread(Runnable runnable) {
-        new Handler(Looper.getMainLooper()).post(runnable);
+        uiThreadHandler.post(runnable);
     }
 
     private void processEvent(Object event) {
@@ -60,17 +55,16 @@ public class ActionTransmitterImpl implements ActionTransmitter {
     }
 
     private void startEventListener() {
-        if (!eventListenerStarted) {
-            eventListenerStarted = true;
-            runOnThreadPool(
-                    () -> chessClient.streamEvents(
-                            event -> runOnUIThread(
-                                    () -> processEvent(event))));
-        }
+        if (eventListenerRunning.compareAndSet(false, true))
+            new Thread(() -> {
+                chessClient.streamEvents(event ->
+                        runOnUIThread(() -> processEvent(event))
+                );
+                eventListenerRunning.set(false);
+            }).start();
     }
 
     public void setRoomFullListener(RoomFullListener roomFullListener) {
-        startEventListener();
         this.roomFullListener = roomFullListener;
     }
 
@@ -80,57 +74,60 @@ public class ActionTransmitterImpl implements ActionTransmitter {
 
     @Override
     public void setOnEnPassantListener(EnPassantListener enPassantListener) {
-        startEventListener();
         this.enPassantListener = enPassantListener;
     }
 
     @Override
     public void setOnCastlingListener(CastlingListener castlingListener) {
-        startEventListener();
         this.castlingListener = castlingListener;
     }
 
     @Override
     public void setOnMakeMoveListener(MoveListener moveListener) {
-        startEventListener();
         this.moveListener = moveListener;
     }
 
     public void setMessageListener(MessageListener messageListener) {
-        startEventListener();
         this.messageListener = messageListener;
     }
 
     public void connect(Listener success, Listener error) {
-        eventListenerStarted = false;
-        runOnThreadPool(() -> {
-            boolean connect = chessClient.connect("oceancraft.ru", 8081);
+        eventListenerRunning.set(false);
+        runOnSendThread(() -> {
+            boolean connected = chessClient.connect("oceancraft.ru", 8081);
             runOnUIThread(() -> {
-                if (connect) {
+                if (connected)
                     success.invoke();
-                } else
+                else
                     error.invoke();
             });
         });
     }
 
     public void join(String key, Listener success, Listener error) {
-        runOnThreadPool(() -> {
-            boolean join = chessClient.join(key);
+        runOnSendThread(() -> {
+            boolean joined = chessClient.join(key);
+            if (joined)
+                startEventListener();
             runOnUIThread(() -> {
-                if (join) success.invoke();
-                else error.invoke();
+                if (joined)
+                    success.invoke();
+                else
+                    error.invoke();
             });
         });
     }
 
     public void createRoom(OnRoomCreated listener, Listener error) {
-        runOnThreadPool(() -> {
+        runOnSendThread(() -> {
             String key = chessClient.newRoom();
+            boolean created = !key.equals("ERROR");
+            if (created)
+                startEventListener();
             runOnUIThread(() -> {
-                if (!key.equals("ERROR")) {
+                if (created)
                     listener.onRoomCreated(key);
-                } else
+                else
                     error.invoke();
             });
         });
@@ -138,27 +135,26 @@ public class ActionTransmitterImpl implements ActionTransmitter {
 
     @Override
     public void makeMove(int xOld, int yOld, int xNew, int yNew) {
-        runOnThreadPool(() -> chessClient.move(xOld, yOld, xNew, yNew));
+        runOnSendThread(() -> chessClient.move(xOld, yOld, xNew, yNew));
     }
 
     @Override
     public void enPassant(int x, int y) {
-        runOnThreadPool(() -> chessClient.enPassant(x, y));
+        runOnSendThread(() -> chessClient.enPassant(x, y));
     }
 
     @Override
     public void castling(boolean longCastling) {
-        runOnThreadPool(() -> chessClient.castling(longCastling));
+        runOnSendThread(() -> chessClient.castling(longCastling));
     }
 
     public void sendMessage(String text) {
-        runOnThreadPool(() -> chessClient.sendMessage(text));
+        runOnSendThread(() -> chessClient.sendMessage(text));
     }
 
     public void unbind() {
-        runOnThreadPool(chessClient::disconnect);
-        eventListenerStarted = false;
-
+        runOnSendThread(chessClient::disconnect);
+        eventListenerRunning.set(false);
         castlingListener = null;
         messageListener = null;
         roomFullListener = null;

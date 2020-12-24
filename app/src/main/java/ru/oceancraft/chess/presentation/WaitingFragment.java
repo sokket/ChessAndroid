@@ -81,8 +81,6 @@ public class WaitingFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         actionTransmitter.connect(
-                "oceancraft.ru",
-                8081,
                 () -> actionTransmitter.createRoom(this::onRoomCreated,
                         () -> {
                             showToast("Can't create room");
