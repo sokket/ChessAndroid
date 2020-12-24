@@ -13,7 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Chess">
         <activity
-            android:name="ru.oceancraft.chess.MainActivity"
+            android:name="ru.oceancraft.chess.AppActivity"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

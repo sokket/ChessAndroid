@@ -3,14 +3,14 @@ package ru.oceancraft.chess.net;
 import android.os.Handler;
 import android.os.Looper;
 
-import ru.oceancraft.chess.game.ActionTransmitter;
-import ru.oceancraft.chess.game.CastlingListener;
-import ru.oceancraft.chess.game.EnPassantListener;
-import ru.oceancraft.chess.game.MoveListener;
-
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+
+import ru.oceancraft.chess.model.ActionTransmitter;
+import ru.oceancraft.chess.model.CastlingListener;
+import ru.oceancraft.chess.model.EnPassantListener;
+import ru.oceancraft.chess.model.MoveListener;
 
 public class ActionTransmitterImpl implements ActionTransmitter {
     private final ChessClient chessClient = new ChessClient();
@@ -101,10 +101,10 @@ public class ActionTransmitterImpl implements ActionTransmitter {
         this.messageListener = messageListener;
     }
 
-    public void connect(String address, int port, Listener success, Listener error) {
+    public void connect(Listener success, Listener error) {
         eventListenerStarted = false;
         runOnThreadPool(() -> {
-            boolean connect = chessClient.connect(address, port);
+            boolean connect = chessClient.connect("oceancraft.ru", 8081);
             runOnUIThread(() -> {
                 if (connect) {
                     success.invoke();

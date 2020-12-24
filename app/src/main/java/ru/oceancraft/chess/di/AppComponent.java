@@ -3,17 +3,17 @@ package ru.oceancraft.chess.di;
 import javax.inject.Singleton;
 
 import dagger.Component;
-import ru.oceancraft.chess.ChatFragment;
-import ru.oceancraft.chess.GameFragment;
-import ru.oceancraft.chess.LaunchFragment;
-import ru.oceancraft.chess.MainActivity;
-import ru.oceancraft.chess.NetworkGameSetupFragment;
-import ru.oceancraft.chess.WaitingFragment;
+import ru.oceancraft.chess.AppActivity;
+import ru.oceancraft.chess.presentation.WaitingFragment;
+import ru.oceancraft.chess.ui.ChatFragment;
+import ru.oceancraft.chess.ui.GameFragment;
+import ru.oceancraft.chess.ui.LaunchFragment;
+import ru.oceancraft.chess.ui.NetworkGameSetupFragment;
 
 @Singleton
 @Component(modules = {ContextModule.class, CiceroneModule.class, NetModule.class})
 public interface AppComponent {
-    void inject(MainActivity mainActivity);
+    void inject(AppActivity appActivity);
 
     void inject(LaunchFragment launchFragment);
 
