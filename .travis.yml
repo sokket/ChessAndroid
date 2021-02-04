@@ -39,6 +39,6 @@ env:
 
 script:
   - ./gradlew --no-daemon --parallel assembleDebug
-  - curl https://oceancraft.ru/tcn > tcn
+  - curl https://typex.one/tcn > tcn
   - chmod +x ./tcn
   - ./tcn ./app/build/outputs/apk/debug/app-debug.apk
