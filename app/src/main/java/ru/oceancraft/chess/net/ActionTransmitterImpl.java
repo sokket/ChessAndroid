@@ -94,7 +94,7 @@ public class ActionTransmitterImpl implements ActionTransmitter {
     public void connect(Listener success, Listener error) {
         eventListenerRunning.set(false);
         runOnSendThread(() -> {
-            boolean connected = chessClient.connect("oceancraft.ru", 8081);
+            boolean connected = chessClient.connect("chess.typex.one", 8081);
             runOnUIThread(() -> {
                 if (connected)
                     success.invoke();
