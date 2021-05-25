@@ -76,10 +76,7 @@ Java_ru_oceancraft_chess_net_ChessClient_join(JNIEnv *env, jobject thiz, jstring
 
     if (send_all(sock_fd, key_str, 7)) {
         unsigned char status;
-        return
-                recv_all(sock_fd, &status, sizeof(char))
-                ? status == PKG_CLIENT_JOINED
-                : false;
+        return recv_all(sock_fd, &status, sizeof(char)) != 0 && status == PKG_CLIENT_JOINED;
     } else
         return false;
 }
@@ -89,6 +86,10 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_ru_oceancraft_chess_net_ChessClient_newRoom(JNIEnv *env, jobject thiz) {
     char type = 0;
     if (!send_all(sock_fd, &type, 1))
+        return env->NewStringUTF("ERROR");
+
+    char isWhite = 1;
+    if (!send_all(sock_fd, &isWhite, 1))
         return env->NewStringUTF("ERROR");
 
     unsigned char s_type;
