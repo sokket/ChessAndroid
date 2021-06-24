@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
@@ -22,6 +23,7 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
 
     private final Handler uiThreadHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private Thread listener;
 
     private MoveListener moveListener;
     private MessageListener messageListener;
@@ -43,6 +45,7 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
                 run.run();
             } catch (IOException | NullPointerException e) {
                 runOnUIThread(error::invoke);
+                e.printStackTrace();
             }
         });
     }
@@ -77,10 +80,9 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
     }
 
     private void runListener() {
-        new Thread(() -> {
-
+        listener = new Thread(() -> {
             byte[] response = new byte[1];
-            while (socket != null) {
+            while (!Thread.interrupted()) {
                 try {
                     if (inputStream.read(response, 0, 1) != 1)
                         throw new IOException();
@@ -130,15 +132,19 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
                             }
                             break;
                     }
+                } catch (SocketException e) {
+                    break;
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        }).start();
+        });
+        listener.start();
     }
 
     @Override
     public void connect(Listener success, Listener onError) {
+        close();
         executeNet(onError, () -> {
             socket = new Socket("chess.typex.one", 8081);
             outputStream = new BufferedOutputStream(socket.getOutputStream());
@@ -254,5 +260,28 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
     @Override
     public void setOnCastlingListener(CastlingListener castlingListener) {
         this.castlingListener = castlingListener;
+    }
+
+    @Override
+    public void close() {
+        unbind();
+        executeNet(() -> {
+            if (inputStream != null) {
+                inputStream.close();
+                inputStream = null;
+            }
+            if (outputStream != null) {
+                outputStream.close();
+                outputStream = null;
+            }
+            if (socket != null) {
+                socket.close();
+                socket = null;
+            }
+            if (listener != null) {
+                listener.interrupt();
+                listener = null;
+            }
+        });
     }
 }

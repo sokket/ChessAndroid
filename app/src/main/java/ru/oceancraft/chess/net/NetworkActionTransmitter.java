@@ -18,4 +18,6 @@ public interface NetworkActionTransmitter extends ActionTransmitter {
     void sendMessage(String text);
 
     void unbind();
+
+    void close();
 }

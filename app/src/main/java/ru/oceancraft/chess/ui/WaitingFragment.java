@@ -102,6 +102,6 @@ public class WaitingFragment extends Fragment {
         super.onDestroy();
         actionTransmitter.removeRoomFullListener();
         if (!joined)
-            actionTransmitter.unbind();
+            actionTransmitter.close();
     }
 }
