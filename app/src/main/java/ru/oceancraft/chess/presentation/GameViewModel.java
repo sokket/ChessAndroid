@@ -1,6 +1,7 @@
 package ru.oceancraft.chess.presentation;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
@@ -13,6 +14,15 @@ import ru.oceancraft.chess.model.Message;
 public class GameViewModel extends ViewModel {
     private final MutableLiveData<List<LogLine>> logs = new MutableLiveData<>();
     private final MutableLiveData<List<Message>> messages = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> turn = new MutableLiveData<>();
+
+    public void showTurn(boolean whiteTurn) {
+        turn.postValue(whiteTurn);
+    }
+
+    public LiveData<Boolean> getTurn() {
+        return turn;
+    }
 
     public void addMessage(Message message) {
         List<Message> list = messages.getValue();

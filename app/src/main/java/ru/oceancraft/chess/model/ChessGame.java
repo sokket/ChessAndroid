@@ -8,12 +8,12 @@ public class ChessGame {
     private final Tile[][] gameBoard = new Tile[8][8];
     private final ChessView chessView;
     private ActionTransmitter actionTransmitter;
-    private final boolean netMode;
+    private boolean netMode;
 
     private int highLightSrcX;
     private int highLightSrcY;
 
-    private final boolean whiteGame;
+    private boolean whiteGame;
     private boolean whiteTurn = true;
 
     private boolean checkmate = false;
@@ -39,6 +39,49 @@ public class ChessGame {
         this.chessView = chessView;
         this.whiteGame = true;
         this.netMode = false;
+    }
+
+    public GameState exportState() {
+        return new GameState(
+                gameBoard,
+                netMode,
+                whiteTurn,
+                whiteGame,
+                checkmate, allowedCastlingForLWR,
+                allowedCastlingForLBR,
+                allowedCastlingForRWR,
+                allowedCastlingForRBR,
+                lastPawnMove
+        );
+    }
+
+    public void loadState(GameState gameState) {
+        clearHighLight();
+
+        TileType[][] gameStateBoard = gameState.getBoard();
+        for (int i = 0; i < 7; i++) {
+            for (int j = 0; j < 7; j++) {
+                gameBoard[i][j].setTileType(gameStateBoard[i][j]);
+            }
+        }
+
+        whiteGame = gameState.isWhiteGame();
+        whiteTurn = gameState.isWhiteMove();
+
+        allowedCastlingForLBR = gameState.isAllowedCastlingForLBR();
+        allowedCastlingForLWR = gameState.isAllowedCastlingForLWR();
+        allowedCastlingForRBR = gameState.isAllowedCastlingForRBR();
+        allowedCastlingForRWR = gameState.isAllowedCastlingForRWR();
+
+        netMode = gameState.isNetMode();
+        checkmate = gameState.isCheckmate();
+        lastPawnMove = gameState.getLastPawnMove();
+
+        allowedMoves.clear();
+        List<Movement> positions = calculateCheckResolveMoves(gameBoard);
+        allowedMoves.addAll(positions);
+
+        syncWithView();
     }
 
     private boolean isCastlingAllowed(Tile[][] board, Castling castling) {
@@ -201,23 +244,25 @@ public class ChessGame {
         return false;
     }
 
-    void changeBoardWithMove(Tile[][] board, Movement movement) {
+    Position changeBoardWithMove(Tile[][] board, Movement movement) {
+        Position oldPosition = new Position(0,0);
         Position highLighted = movement.highLighted;
         if (movement instanceof SimpleMovement) {
             SimpleMovement simpleMovement = (SimpleMovement) movement;
-            Position oldPosition = simpleMovement.oldPosition;
+            oldPosition = simpleMovement.oldPosition;
             TileType oldTileType = board[oldPosition.y][oldPosition.x].getTileType();
             board[highLighted.y][highLighted.x].setTileType(oldTileType);
             board[oldPosition.y][oldPosition.x].setTileType(TileType.BLANK);
         } else if (movement instanceof EatMovement) {
             EatMovement eatMovement = (EatMovement) movement;
             Position attackerPosition = eatMovement.attackerPosition;
+            oldPosition = attackerPosition;
             TileType attackerTileType = board[attackerPosition.y][attackerPosition.x].getTileType();
             board[highLighted.y][highLighted.x].setTileType(attackerTileType);
             board[attackerPosition.y][attackerPosition.x].setTileType(TileType.BLANK);
         } else if (movement instanceof EnPassant) {
             EnPassant enPassant = ((EnPassant) movement);
-            Position oldPosition = enPassant.oldPosition;
+            oldPosition = enPassant.oldPosition;
             Position deadPawn = enPassant.deadPawn;
             TileType oldTileType = board[oldPosition.y][oldPosition.x].getTileType();
             board[oldPosition.y][oldPosition.x].setTileType(TileType.BLANK);
@@ -235,6 +280,7 @@ public class ChessGame {
             board[kingOldPosition.y][kingOldPosition.x].setTileType(TileType.BLANK);
             board[rookOldPosition.y][rookOldPosition.x].setTileType(TileType.BLANK);
         }
+        return oldPosition;
     }
 
     private List<Movement> calculateCheckResolveMoves(Tile[][] board) {
@@ -334,7 +380,7 @@ public class ChessGame {
         int x = position.x;
         int y = position.y;
 
-        changeBoardWithMove(gameBoard, movement);
+        Position old = changeBoardWithMove(gameBoard, movement);
 
         Position hlPosition = movement.highLighted;
         Tile targetTile = gameBoard[hlPosition.y][hlPosition.x];
@@ -367,7 +413,7 @@ public class ChessGame {
                 }
             }
         } else {
-            chessView.onMoveFinished(!whiteTurn);
+            chessView.onLocalGameMoveFinished(!whiteTurn);
             syncWithView();
         }
 
@@ -380,7 +426,7 @@ public class ChessGame {
 
         chessView.onNewLogLine(
                 new LogLine(
-                        highLightSrcX, highLightSrcY,
+                        old.x, old.y,
                         x, y,
                         targetTileType.getName(),
                         check,
@@ -389,6 +435,7 @@ public class ChessGame {
                         longCastling
                 )
         );
+        chessView.onNetGameMoveFinished(whiteTurn);
     }
 
     Movement findShowedMove(int x, int y) {
@@ -431,7 +478,7 @@ public class ChessGame {
                 Position newPawnPosition;
                 Position deadPawnPosition;
                 if (whiteTurn) {
-                    if (gameBoard[y][x-1].getTileType() == TileType.BLACK_PAWN) {
+                    if (gameBoard[y][x - 1].getTileType() == TileType.BLACK_PAWN) {
                         newPawnPosition = new Position(x - 1, y);
                         deadPawnPosition = new Position(x - 1, y - 1);
                     } else {
@@ -439,7 +486,7 @@ public class ChessGame {
                         deadPawnPosition = new Position(x + 1, y - 1);
                     }
                 } else {
-                    if (gameBoard[y][x-1].getTileType() == TileType.WHITE_PAWN) {
+                    if (gameBoard[y][x - 1].getTileType() == TileType.WHITE_PAWN) {
                         newPawnPosition = new Position(x - 1, y);
                         deadPawnPosition = new Position(x - 1, y + 1);
                     } else {

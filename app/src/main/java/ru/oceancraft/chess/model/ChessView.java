@@ -13,9 +13,11 @@ public interface ChessView {
 
     void cleanLog();
 
-    void onMoveFinished(boolean whiteTurn);
+    void onLocalGameMoveFinished(boolean whiteTurn);
 
     void onCheck();
 
     void onCheckmate();
+
+    void onNetGameMoveFinished(boolean whiteTurn);
 }

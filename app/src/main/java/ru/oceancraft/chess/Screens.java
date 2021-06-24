@@ -2,7 +2,7 @@ package ru.oceancraft.chess;
 
 import androidx.fragment.app.Fragment;
 
-import ru.oceancraft.chess.presentation.WaitingFragment;
+import ru.oceancraft.chess.ui.WaitingFragment;
 import ru.oceancraft.chess.ui.GameFragment;
 import ru.oceancraft.chess.ui.LaunchFragment;
 import ru.oceancraft.chess.ui.NetworkGameSetupFragment;

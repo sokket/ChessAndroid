@@ -21,7 +21,7 @@ import javax.inject.Inject;
 import ru.oceancraft.chess.App;
 import ru.oceancraft.chess.R;
 import ru.oceancraft.chess.model.Message;
-import ru.oceancraft.chess.net.ActionTransmitterImpl;
+import ru.oceancraft.chess.net.NetworkActionTransmitter;
 import ru.oceancraft.chess.presentation.ChatAdapter;
 import ru.oceancraft.chess.presentation.GameViewModel;
 
@@ -29,7 +29,7 @@ import ru.oceancraft.chess.presentation.GameViewModel;
 public class ChatFragment extends Fragment {
 
     @Inject
-    ActionTransmitterImpl actionTransmitter;
+    NetworkActionTransmitter actionTransmitter;
 
     public ChatFragment() {
         // Required empty public constructor
@@ -63,7 +63,8 @@ public class ChatFragment extends Fragment {
         ImageButton sendButton = view.findViewById(R.id.sendBtn);
         editText.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -74,7 +75,8 @@ public class ChatFragment extends Fragment {
             }
 
             @Override
-            public void afterTextChanged(Editable s) {}
+            public void afterTextChanged(Editable s) {
+            }
         });
         sendButton.setOnClickListener(v -> {
             String messageText = editText.getText().toString();

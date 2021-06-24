@@ -10,17 +10,19 @@ import ru.oceancraft.chess.ui.LogFragment;
 public class GamePagerAdapter extends FragmentStateAdapter {
 
     private final boolean netGame;
+    private final boolean whiteGame;
 
-    public GamePagerAdapter(@NonNull Fragment fragment, boolean netGame) {
+    public GamePagerAdapter(@NonNull Fragment fragment, boolean netGame, boolean whiteGame) {
         super(fragment);
         this.netGame = netGame;
+        this.whiteGame = whiteGame;
     }
 
     @NonNull
     @Override
     public Fragment createFragment(int position) {
         if (position == 0)
-            return new LogFragment();
+            return LogFragment.newInstance(netGame, whiteGame);
         else
             return new ChatFragment();
     }

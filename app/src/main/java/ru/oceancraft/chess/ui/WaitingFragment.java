@@ -1,4 +1,4 @@
-package ru.oceancraft.chess.presentation;
+package ru.oceancraft.chess.ui;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -22,14 +22,14 @@ import javax.inject.Inject;
 import ru.oceancraft.chess.App;
 import ru.oceancraft.chess.R;
 import ru.oceancraft.chess.Screens;
-import ru.oceancraft.chess.net.ActionTransmitterImpl;
+import ru.oceancraft.chess.net.NetworkActionTransmitter;
 import ru.terrakok.cicerone.Router;
 
 
 public class WaitingFragment extends Fragment {
 
     @Inject
-    ActionTransmitterImpl actionTransmitter;
+    NetworkActionTransmitter actionTransmitter;
 
     @Inject
     Router router;
@@ -53,8 +53,11 @@ public class WaitingFragment extends Fragment {
         return inflater.inflate(R.layout.fragment_waiting, container, false);
     }
 
-    void showToast(String text) {
-        Toast.makeText(requireContext(), text, Toast.LENGTH_LONG).show();
+    void showMessage(String text) {
+        View view = getView();
+        if (view != null) {
+            Snackbar.make(view, text, Snackbar.LENGTH_SHORT).show();
+        }
     }
 
     void onRoomCreated(String key) {
@@ -83,12 +86,12 @@ public class WaitingFragment extends Fragment {
         actionTransmitter.connect(
                 () -> actionTransmitter.createRoom(this::onRoomCreated,
                         () -> {
-                            showToast("Can't create room");
+                            showMessage("Can't create room");
                             router.exit();
                         }
                 ),
                 () -> {
-                    showToast("Can't connect to server");
+                    showMessage("Can't connect to server");
                     router.navigateTo(new Screens.LaunchScreen());
                 }
         );

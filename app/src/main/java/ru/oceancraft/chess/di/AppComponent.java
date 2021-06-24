@@ -4,7 +4,7 @@ import javax.inject.Singleton;
 
 import dagger.Component;
 import ru.oceancraft.chess.AppActivity;
-import ru.oceancraft.chess.presentation.WaitingFragment;
+import ru.oceancraft.chess.ui.WaitingFragment;
 import ru.oceancraft.chess.ui.ChatFragment;
 import ru.oceancraft.chess.ui.GameFragment;
 import ru.oceancraft.chess.ui.LaunchFragment;

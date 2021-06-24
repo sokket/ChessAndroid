@@ -19,6 +19,15 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.gson.Gson;
+
+import org.jetbrains.annotations.NotNull;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.inject.Inject;
 
@@ -26,19 +35,20 @@ import ru.oceancraft.chess.App;
 import ru.oceancraft.chess.R;
 import ru.oceancraft.chess.model.ChessGame;
 import ru.oceancraft.chess.model.ChessView;
+import ru.oceancraft.chess.model.GameState;
 import ru.oceancraft.chess.model.LogLine;
 import ru.oceancraft.chess.model.Message;
 import ru.oceancraft.chess.model.OnPressListener;
 import ru.oceancraft.chess.model.ResetOnPressListener;
 import ru.oceancraft.chess.model.TileType;
-import ru.oceancraft.chess.net.ActionTransmitterImpl;
+import ru.oceancraft.chess.net.NetworkActionTransmitter;
 import ru.oceancraft.chess.presentation.GamePagerAdapter;
 import ru.oceancraft.chess.presentation.GameViewModel;
 
 public class GameFragment extends Fragment implements ChessView {
 
     @Inject
-    ActionTransmitterImpl actionTransmitter;
+    NetworkActionTransmitter actionTransmitter;
 
     private OnPressListener onPressListener;
     private final CardView[][] views = new CardView[8][8];
@@ -103,13 +113,51 @@ public class GameFragment extends Fragment implements ChessView {
         boolean netGame = requireArguments().getBoolean("net");
         boolean isWhite = requireArguments().getBoolean("white");
 
+
         if (netGame)
             startNetworkGame(actionTransmitter, isWhite);
         else
             startOfflineGame();
 
+        if (savedInstanceState != null) {
+            try {
+                byte[] savedGameState = savedInstanceState.getByteArray("state");
+                ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(savedGameState);
+                GZIPInputStream gzipInputStream = new GZIPInputStream(byteArrayInputStream);
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+                byte[] buffer = new byte[1024];
+                int len;
+
+                while ((len = gzipInputStream.read(buffer)) > 0) {
+                    byteArrayOutputStream.write(buffer, 0, len);
+                }
+
+                int end = 0;
+                for (int i = 0; i < buffer.length; i++) {
+                    if (buffer[i] == 0) {
+                        end = i;
+                        break;
+                    }
+                }
+
+                String json = new String(buffer, 0, end);
+                Gson gson = new Gson();
+                GameState gameState = gson.fromJson(json, GameState.class);
+
+                if (!gameState.isNetMode()) {
+                    loadViews(gameState.isWhiteMove());
+                }
+                chessGame.loadState(gameState);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            gameViewModel.clearLogs();
+        }
+
         viewPager = view.findViewById(R.id.pager);
-        FragmentStateAdapter pagerAdapter = new GamePagerAdapter(this, netGame);
+        FragmentStateAdapter pagerAdapter = new GamePagerAdapter(this, netGame, isWhite);
         viewPager.setAdapter(pagerAdapter);
     }
 
@@ -138,7 +186,7 @@ public class GameFragment extends Fragment implements ChessView {
         chessGame.initGame();
     }
 
-    void startNetworkGame(ActionTransmitterImpl actionTransmitter, boolean isWhite) {
+    void startNetworkGame(NetworkActionTransmitter actionTransmitter, boolean isWhite) {
         actionTransmitter.setMessageListener(text -> {
             if (viewPager.getCurrentItem() == 0)
                 Snackbar.make(requireView(), text, Snackbar.LENGTH_LONG)
@@ -150,6 +198,7 @@ public class GameFragment extends Fragment implements ChessView {
         chessGame = new ChessGame(this, actionTransmitter, isWhite);
         loadViews(isWhite);
         chessGame.initGame();
+        gameViewModel.showTurn(true);
     }
 
     @Override
@@ -192,7 +241,7 @@ public class GameFragment extends Fragment implements ChessView {
     }
 
     @Override
-    public void onMoveFinished(boolean whiteTurn) {
+    public void onLocalGameMoveFinished(boolean whiteTurn) {
         loadViews(whiteTurn);
     }
 
@@ -207,10 +256,30 @@ public class GameFragment extends Fragment implements ChessView {
     }
 
     @Override
+    public void onNetGameMoveFinished(boolean whiteTurn) {
+        gameViewModel.showTurn(whiteTurn);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull @NotNull Bundle outState) {
+        try {
+            Gson gson = new Gson();
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            GZIPOutputStream zipStream = new GZIPOutputStream(byteArrayOutputStream);
+            zipStream.write(gson.toJson(chessGame.exportState()).getBytes());
+            zipStream.close();
+            byteArrayOutputStream.close();
+            byte[] bytes = byteArrayOutputStream.toByteArray();
+            outState.putByteArray("state", bytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
     public void onDestroy() {
-        super.onDestroy();
         actionTransmitter.unbind();
-        gameViewModel.clearLogs();
-        gameViewModel.clearMessages();
+        super.onDestroy();
     }
 }

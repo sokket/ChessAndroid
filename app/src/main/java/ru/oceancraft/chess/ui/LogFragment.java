@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,16 +34,50 @@ public class LogFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         GameViewModel model = new ViewModelProvider(requireActivity()).get(GameViewModel.class);
-        model.getLogs().observe(this, logLines -> {
+        model.getLogs().observe(getViewLifecycleOwner(), logLines -> {
             adapter.update(logLines);
             if (!logLines.isEmpty())
                 recyclerView.scrollToPosition(logLines.size() - 1);
         });
+
+        boolean netGame = false;
+        boolean whiteGame = true;
+        Bundle arguments = getArguments();
+        if (arguments != null) {
+            netGame = arguments.getBoolean("netGame", false);
+            whiteGame = arguments.getBoolean("whiteGame", true);
+        }
+
+        Button turnIndicator = view.findViewById(R.id.turn);
+
+        if (netGame) {
+            boolean finalWhiteGame = whiteGame;
+            model.getTurn().observe(getViewLifecycleOwner(), whiteTurn -> {
+                if (finalWhiteGame ^ whiteTurn) {
+                    turnIndicator.setEnabled(false);
+                    turnIndicator.setText("Opponent's turn");
+                } else {
+                    turnIndicator.setEnabled(true);
+                    turnIndicator.setText("Your turn");
+                }
+            });
+        } else {
+            turnIndicator.setVisibility(View.GONE);
+        }
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_log, container, false);
+    }
+
+    public static LogFragment newInstance(boolean netGame, boolean whiteGame) {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("netGame", netGame);
+        bundle.putBoolean("whiteGame", whiteGame);
+        LogFragment logFragment = new LogFragment();
+        logFragment.setArguments(bundle);
+        return logFragment;
     }
 }
