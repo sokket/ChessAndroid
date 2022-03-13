@@ -101,11 +101,11 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
                     }
                     switch (Packages.valueOf(response[0])) {
                         case MOVE:
+                            byte[] moveBytes = new byte[4];
+                            if (inputStream.read(moveBytes, 0, 4) != 4) {
+                                throw new IOException();
+                            }
                             if (moveListener != null) {
-                                byte[] moveBytes = new byte[4];
-                                if (inputStream.read(moveBytes, 0, 4) != 4) {
-                                    throw new IOException();
-                                }
                                 runOnUIThread(() -> moveListener.onMakeMove(
                                         moveBytes[0],
                                         moveBytes[1],
@@ -115,27 +115,37 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
                             }
                             break;
                         case CASTLING:
+                            boolean longCastling = inputStream.read() == 1;
                             if (castlingListener != null) {
-                                boolean longCastling = inputStream.read() == 1;
                                 runOnUIThread(() -> castlingListener.onCastling(longCastling));
                             }
                             break;
                         case EN_PASSANT:
+                            final int x = inputStream.read();
+                            final int y = inputStream.read();
                             if (enPassantListener != null) {
-                                final int x = inputStream.read();
-                                final int y = inputStream.read();
                                 runOnUIThread(() -> enPassantListener.onEnPassant(x, y));
                             }
                             break;
+                        case PROMOTION:
+                            final int oX = inputStream.read();
+                            final int oY = inputStream.read();
+                            final int nX = inputStream.read();
+                            final int nY = inputStream.read();
+                            final int tileType = inputStream.read();
+                            if (promotionListener != null) {
+                                runOnUIThread(() -> promotionListener.onPromotion(oX, oY, nX, nY, tileType));
+                            }
+                            break;
                         case CHAT_MSG:
+                            ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+                            byte read;
+                            while ((read = (byte) inputStream.read()) != 0) {
+                                byteArray.write(read);
+                            }
+                            byte[] msgBytes = byteArray.toByteArray();
+                            String message = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(msgBytes)).toString();
                             if (messageListener != null) {
-                                ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-                                byte read;
-                                while ((read = (byte) inputStream.read()) != 0) {
-                                    byteArray.write(read);
-                                }
-                                byte[] msgBytes = byteArray.toByteArray();
-                                String message = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(msgBytes)).toString();
                                 runOnUIThread(() -> messageListener.onNewMessage(message));
                             }
                             break;
@@ -253,12 +263,15 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
 
     @Override
     public void unbind() {
-        messageListener = null;
-        enPassantListener = null;
-        castlingListener = null;
-        moveListener = null;
-        roomFullListener = null;
-        statusCheckListener = null;
+        executeNet(() -> {
+            messageListener = null;
+            enPassantListener = null;
+            castlingListener = null;
+            moveListener = null;
+            roomFullListener = null;
+            statusCheckListener = null;
+            promotionListener = null;
+        });
     }
 
     @Override
