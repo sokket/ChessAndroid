@@ -5,6 +5,6 @@
     <string name="player_2_0">Player 2: 0</string>
     <string name="player_1_0">Player 1: 0</string>
     <string name="reset_button">RESET</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="connection_error">Can\'t connect to server</string>
+    <string name="join_error">Can\'t join room</string>
 </resources>

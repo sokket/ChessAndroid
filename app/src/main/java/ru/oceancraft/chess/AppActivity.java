@@ -1,16 +1,26 @@
 package ru.oceancraft.chess;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
+import com.google.android.material.snackbar.Snackbar;
+
 import org.jetbrains.annotations.Nullable;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
+import ru.oceancraft.chess.net.NetworkActionTransmitter;
 import ru.terrakok.cicerone.Navigator;
 import ru.terrakok.cicerone.NavigatorHolder;
 import ru.terrakok.cicerone.Router;
@@ -24,6 +34,9 @@ public class AppActivity extends AppCompatActivity {
 
     @Inject
     NavigatorHolder navigatorHolder;
+
+    @Inject
+    NetworkActionTransmitter actionTransmitter;
 
     Navigator navigator = new SupportAppNavigator(this, R.id.mainView) {
         @Override
@@ -42,6 +55,10 @@ public class AppActivity extends AppCompatActivity {
         }
     };
 
+    private void showToast(String text) {
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -50,8 +67,27 @@ public class AppActivity extends AppCompatActivity {
         App app = (App) getApplication();
         app.appComponent.inject(this);
 
-        if (savedInstanceState == null)
-            router.newRootScreen(new Screens.LaunchScreen());
+        if (savedInstanceState == null) {
+            Uri uri = getIntent().getData();
+            if (uri != null) {
+                String inviteCode = uri.getPath().replace("/", "");
+                if (inviteCode.matches("[0-9a-zA-Z]{3}-[0-9a-zA-Z]{3}")) {
+                    actionTransmitter.connect(
+                            () -> actionTransmitter.join(
+                                    inviteCode,
+                                    () -> router.newRootChain(
+                                            new Screens.LaunchScreen(),
+                                            new Screens.GameScreen(true, false)
+                                    ),
+                                    () -> showToast(getString(R.string.join_error))
+                            ),
+                            () -> showToast(getString(R.string.connection_error))
+                    );
+                }
+            } else {
+                router.newRootScreen(new Screens.LaunchScreen());
+            }
+        }
     }
 
     @Override

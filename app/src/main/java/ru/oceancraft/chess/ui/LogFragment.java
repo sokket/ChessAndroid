@@ -1,10 +1,12 @@
 package ru.oceancraft.chess.ui;
 
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -24,6 +26,7 @@ public class LogFragment extends Fragment {
         // Required empty public constructor
     }
 
+    @SuppressLint("SetTextI18n")
     @Override
     public void onViewCreated(@NonNull View view, @Nullable @org.jetbrains.annotations.Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -61,6 +64,12 @@ public class LogFragment extends Fragment {
                     turnIndicator.setText("Your turn");
                 }
             });
+
+            TextView connectionStatusText = view.findViewById(R.id.connectionCheckStatus);
+
+            model.getTimeSinceLastConnectionCheck().observe(getViewLifecycleOwner(), seconds ->
+                    connectionStatusText.setText(seconds.toString() + "s")
+            );
         } else {
             turnIndicator.setVisibility(View.GONE);
         }

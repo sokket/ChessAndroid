@@ -53,7 +53,7 @@ public class ChatFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         GameViewModel gameViewModel = new ViewModelProvider(requireActivity()).get(GameViewModel.class);
-        gameViewModel.getMessages().observe(this, messages -> {
+        gameViewModel.getMessages().observe(getViewLifecycleOwner(), messages -> {
             adapter.updateData(messages);
             if (!messages.isEmpty())
                 recyclerView.scrollToPosition(messages.size() - 1);

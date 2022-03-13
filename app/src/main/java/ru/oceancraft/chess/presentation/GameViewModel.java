@@ -1,10 +1,12 @@
 package ru.oceancraft.chess.presentation;
 
+import android.os.CountDownTimer;
+
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +18,43 @@ public class GameViewModel extends ViewModel {
     private final MutableLiveData<List<Message>> messages = new MutableLiveData<>();
     private final MutableLiveData<Boolean> turn = new MutableLiveData<>();
 
+    private final MutableLiveData<Long> lastCheck = new MutableLiveData<>(Instant.now().toEpochMilli());
+    private final MutableLiveData<Integer> secondsSinceCheck = new MutableLiveData<>(0);
+
+    private final CountDownTimer countDownTimer = new CountDownTimer(Long.MAX_VALUE, 1000) {
+        @Override
+        public void onTick(long millisUntilFinished) {
+            Long lastCheckValue = lastCheck.getValue();
+            if (lastCheckValue != null) {
+                secondsSinceCheck.postValue((int) ((Instant.now().toEpochMilli() - lastCheckValue) / 1000));
+            }
+        }
+
+        @Override
+        public void onFinish() {
+        }
+    };
+
+    public GameViewModel() {
+        countDownTimer.start();
+    }
+
+    public void connectionCheckFinished() {
+        lastCheck.postValue(Instant.now().toEpochMilli());
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        countDownTimer.cancel();
+    }
+
     public void showTurn(boolean whiteTurn) {
         turn.postValue(whiteTurn);
+    }
+
+    public LiveData<Integer> getTimeSinceLastConnectionCheck() {
+        return secondsSinceCheck;
     }
 
     public LiveData<Boolean> getTurn() {

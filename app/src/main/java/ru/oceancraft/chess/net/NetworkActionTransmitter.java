@@ -9,6 +9,8 @@ public interface NetworkActionTransmitter extends ActionTransmitter {
 
     void setMessageListener(MessageListener messageListener);
 
+    void setOnStatusCheckListener(StatusCheckListener statusCheckListener);
+
     void connect(Listener success, Listener error);
 
     void join(String key, Listener success, Listener error);

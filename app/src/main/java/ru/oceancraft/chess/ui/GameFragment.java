@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -195,6 +196,8 @@ public class GameFragment extends Fragment implements ChessView {
             gameViewModel.addMessage(new Message(text, false));
         });
 
+        actionTransmitter.setOnStatusCheckListener(() -> gameViewModel.connectionCheckFinished());
+
         chessGame = new ChessGame(this, actionTransmitter, isWhite);
         loadViews(isWhite);
         chessGame.initGame();
@@ -279,7 +282,7 @@ public class GameFragment extends Fragment implements ChessView {
 
     @Override
     public void onDestroy() {
-        actionTransmitter.unbind();
+        actionTransmitter.close();
         super.onDestroy();
     }
 }

@@ -2,6 +2,7 @@ package ru.oceancraft.chess.net;
 
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -12,9 +13,14 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 
+import ru.oceancraft.chess.App;
 import ru.oceancraft.chess.model.CastlingListener;
 import ru.oceancraft.chess.model.EnPassantListener;
 import ru.oceancraft.chess.model.MoveListener;
@@ -30,6 +36,9 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
     private EnPassantListener enPassantListener;
     private CastlingListener castlingListener;
     private RoomFullListener roomFullListener;
+    private StatusCheckListener statusCheckListener;
+
+    private final Timer statusCheckTimer = new Timer();
 
     private void runOnUIThread(Runnable runnable) {
         uiThreadHandler.post(runnable);
@@ -79,13 +88,19 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
         this.messageListener = messageListener;
     }
 
+    @Override
+    public void setOnStatusCheckListener(StatusCheckListener statusCheckListener) {
+        this.statusCheckListener = statusCheckListener;
+    }
+
     private void runListener() {
         listener = new Thread(() -> {
             byte[] response = new byte[1];
             while (!Thread.interrupted()) {
                 try {
-                    if (inputStream.read(response, 0, 1) != 1)
+                    if (inputStream.read(response, 0, 1) != 1) {
                         throw new IOException();
+                    }
                     switch (Packages.valueOf(response[0])) {
                         case MOVE:
                             if (moveListener != null) {
@@ -130,6 +145,38 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
                             if (roomFullListener != null) {
                                 runOnUIThread(() -> roomFullListener.onFull());
                             }
+                            executeNet(() -> {
+                                outputStream.write(Packages.PING.num);
+                                outputStream.flush();
+                            });
+                            break;
+                        case PING:
+                            if (statusCheckListener != null) {
+                                statusCheckListener.onCheckFinished();
+                            }
+                            statusCheckTimer.schedule((new TimerTask() {
+                                @Override
+                                public void run() {
+                                    executeNet(() -> {
+                                        outputStream.write(Packages.PONG.num);
+                                        outputStream.flush();
+                                    });
+                                }
+                            }), 3000L);
+                            break;
+                        case PONG:
+                            if (statusCheckListener != null) {
+                                statusCheckListener.onCheckFinished();
+                            }
+                            statusCheckTimer.schedule((new TimerTask() {
+                                @Override
+                                public void run() {
+                                    executeNet(() -> {
+                                        outputStream.write(Packages.PING.num);
+                                        outputStream.flush();
+                                    });
+                                }
+                            }), 3000L);
                             break;
                     }
                 } catch (SocketException e) {
@@ -146,7 +193,7 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
     public void connect(Listener success, Listener onError) {
         close();
         executeNet(onError, () -> {
-            socket = new Socket("chess.typex.one", 8081);
+            socket = new Socket("192.168.14.34", 8081);
             outputStream = new BufferedOutputStream(socket.getOutputStream());
             String header = "CHESS_PROTO/1.0";
             ByteBuffer byteBuffer = StandardCharsets.ISO_8859_1.encode(header);
@@ -213,6 +260,7 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
         castlingListener = null;
         moveListener = null;
         roomFullListener = null;
+        statusCheckListener = null;
     }
 
     @Override
