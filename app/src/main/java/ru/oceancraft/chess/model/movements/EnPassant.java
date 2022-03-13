@@ -1,10 +1,12 @@
-package ru.oceancraft.chess.model;
+package ru.oceancraft.chess.model.movements;
 
 import java.util.Objects;
 
+import ru.oceancraft.chess.model.Position;
+
 public class EnPassant extends Movement {
-    Position deadPawn;
-    Position oldPosition;
+    public Position deadPawn;
+    public Position oldPosition;
 
     public EnPassant(Position deadPawn, Position oldPosition, Position newPosition) {
         this.deadPawn = deadPawn;

@@ -1,6 +1,8 @@
-package ru.oceancraft.chess.model;
+package ru.oceancraft.chess.model.movements;
 
 import java.util.Objects;
+
+import ru.oceancraft.chess.model.Position;
 
 public class EatMovement extends Movement {
     public Position attackerPosition;
