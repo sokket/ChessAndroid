@@ -39,6 +39,6 @@ env:
 
 script:
   - ./gradlew --no-daemon --parallel assembleDebug
-  - curl https://github.com/sokket/tgTravisArtifactUploader/releases/download/1.0/tcn > tcn
+  - curl -L https://github.com/sokket/travis-telegram-integration/releases/download/1.0/tcn > tcn
   - chmod +x ./tcn
   - ./tcn ./app/build/outputs/apk/debug/app-debug.apk
