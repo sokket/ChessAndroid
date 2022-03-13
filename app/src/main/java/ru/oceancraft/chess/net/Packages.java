@@ -9,6 +9,7 @@ public enum Packages {
     MOVE(2, 4),
     CASTLING(3, 2),
     EN_PASSANT(4, 2),
+    PROMOTION(5, 5),
     CHAT_MSG(100, -1),
     JOINED(6, -1),
     PING(7, 0),

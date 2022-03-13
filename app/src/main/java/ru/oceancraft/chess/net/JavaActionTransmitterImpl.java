@@ -2,7 +2,6 @@ package ru.oceancraft.chess.net;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.widget.Toast;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -13,17 +12,15 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
 
-import ru.oceancraft.chess.App;
-import ru.oceancraft.chess.model.CastlingListener;
-import ru.oceancraft.chess.model.EnPassantListener;
-import ru.oceancraft.chess.model.MoveListener;
+import ru.oceancraft.chess.model.listeners.CastlingListener;
+import ru.oceancraft.chess.model.listeners.EnPassantListener;
+import ru.oceancraft.chess.model.listeners.MoveListener;
+import ru.oceancraft.chess.model.listeners.PromotionListener;
 
 public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
 
@@ -35,6 +32,7 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
     private MessageListener messageListener;
     private EnPassantListener enPassantListener;
     private CastlingListener castlingListener;
+    private PromotionListener promotionListener;
     private RoomFullListener roomFullListener;
     private StatusCheckListener statusCheckListener;
 
@@ -193,7 +191,7 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
     public void connect(Listener success, Listener onError) {
         close();
         executeNet(onError, () -> {
-            socket = new Socket("192.168.14.34", 8081);
+            socket = new Socket("chess-game.typex.one", 8081);
             outputStream = new BufferedOutputStream(socket.getOutputStream());
             String header = "CHESS_PROTO/1.0";
             ByteBuffer byteBuffer = StandardCharsets.ISO_8859_1.encode(header);
@@ -298,6 +296,26 @@ public class JavaActionTransmitterImpl implements NetworkActionTransmitter {
             outputStream.write(longCastling ? 1 : 0);
             outputStream.flush();
         });
+    }
+
+    @Override
+    public void promotion(int xOld, int yOld, int xNew, int yNew, char newTileType) {
+        executeNet(() -> {
+            outputStream.write(Packages.PROMOTION.num);
+            outputStream.write(new byte[] {
+                    (byte) xOld,
+                    (byte) yOld,
+                    (byte) xNew,
+                    (byte) yNew,
+                    (byte) newTileType
+            });
+            outputStream.flush();
+        });
+    }
+
+    @Override
+    public void setOnPromotionListener(PromotionListener promotionListener) {
+        this.promotionListener = promotionListener;
     }
 
     @Override

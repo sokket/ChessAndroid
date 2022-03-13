@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.GridLayout;
 import android.widget.ImageView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,8 +38,9 @@ import ru.oceancraft.chess.model.ChessView;
 import ru.oceancraft.chess.model.GameState;
 import ru.oceancraft.chess.model.LogLine;
 import ru.oceancraft.chess.model.Message;
-import ru.oceancraft.chess.model.OnPressListener;
-import ru.oceancraft.chess.model.ResetOnPressListener;
+import ru.oceancraft.chess.model.listeners.OnPressListener;
+import ru.oceancraft.chess.model.listeners.OnPromotionListener;
+import ru.oceancraft.chess.model.listeners.ResetOnPressListener;
 import ru.oceancraft.chess.model.TileType;
 import ru.oceancraft.chess.net.NetworkActionTransmitter;
 import ru.oceancraft.chess.presentation.GamePagerAdapter;
@@ -261,6 +261,11 @@ public class GameFragment extends Fragment implements ChessView {
     @Override
     public void onNetGameMoveFinished(boolean whiteTurn) {
         gameViewModel.showTurn(whiteTurn);
+    }
+
+    @Override
+    public void promotionChoiceRequirement(OnPromotionListener onPromotionListener) {
+
     }
 
     @Override

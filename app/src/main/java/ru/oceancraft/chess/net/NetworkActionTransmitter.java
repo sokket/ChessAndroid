@@ -1,6 +1,6 @@
 package ru.oceancraft.chess.net;
 
-import ru.oceancraft.chess.model.ActionTransmitter;
+import ru.oceancraft.chess.model.action_transmitter.ActionTransmitter;
 
 public interface NetworkActionTransmitter extends ActionTransmitter {
     void setRoomFullListener(RoomFullListener roomFullListener);

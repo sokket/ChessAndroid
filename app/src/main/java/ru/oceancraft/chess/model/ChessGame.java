@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import ru.oceancraft.chess.model.movements.*;
+import ru.oceancraft.chess.model.action_transmitter.ActionTransmitter;
+
 public class ChessGame {
     private final Tile[][] gameBoard = new Tile[8][8];
     private final ChessView chessView;
@@ -131,15 +134,19 @@ public class ChessGame {
             for (Position position : moves[i])
                 if (checkOverLap(position)) {
                     TileType targetTileType = board[position.y][position.x].getTileType();
-                    boolean targetColor = isBlack(targetTileType);
+                    boolean targetColor = isWhite(targetTileType);
 
                     if (targetTileType == TileType.BLANK && (!isPawn || i == 0) && !isKing) {
-                        trimmed.add(new SimpleMovement(
+                        SimpleMovement simpleMovement = new SimpleMovement(
                                 new Position(fromX, fromY),
                                 position
-                        ));
-                    } else if (
-                            targetTileType == TileType.BLACK_KING ||
+                        );
+                        if (isPawn && ((isSrcWhite && position.y == 0) || (!isSrcWhite && position.y == 7))) {
+                            trimmed.add(new Promotion(simpleMovement, isSrcWhite ? TileType.WHITE_QUEEN : TileType.BLACK_QUEEN));
+                            break;
+                        }
+                        trimmed.add(simpleMovement);
+                    } else if (targetTileType == TileType.BLACK_KING ||
                                     targetTileType == TileType.WHITE_KING) {
                         if (isSrcWhite != targetColor && notRealMove && (!isPawn || i != 0)) {
                             trimmed.add(new EatMovement(
@@ -202,10 +209,15 @@ public class ChessGame {
                     } else if (
                             targetTileType != TileType.BLANK &&
                                     isSrcWhite != targetColor && (!isPawn || i != 0)) {
-                        trimmed.add(new EatMovement(
+                        EatMovement eatMovement = new EatMovement(
                                 new Position(fromX, fromY),
                                 position
-                        ));
+                        );
+                        if (isPawn && ((isSrcWhite && position.y == 0) || (!isSrcWhite && position.y == 7))) {
+                            trimmed.add(new Promotion(eatMovement, isSrcWhite ? TileType.WHITE_QUEEN : TileType.BLACK_QUEEN));
+                            break;
+                        }
+                        trimmed.add(eatMovement);
                         break;
                     } else
                         break;
@@ -279,6 +291,11 @@ public class ChessGame {
             board[rookNewPosition.y][rookNewPosition.x].setTileType(rookOldTileType);
             board[kingOldPosition.y][kingOldPosition.x].setTileType(TileType.BLANK);
             board[rookOldPosition.y][rookOldPosition.x].setTileType(TileType.BLANK);
+        } else if (movement instanceof Promotion) {
+            Promotion promotion = (Promotion) movement;
+            changeBoardWithMove(board, promotion.movement);
+            Position newPosition = promotion.highLighted;
+            board[newPosition.y][newPosition.x].setTileType(promotion.newTileType);
         }
         return oldPosition;
     }
@@ -325,7 +342,7 @@ public class ChessGame {
         return copy;
     }
 
-    private boolean isBlack(TileType tileType) {
+    private boolean isWhite(TileType tileType) {
         return tileType.isWhite();
     }
 
@@ -410,6 +427,21 @@ public class ChessGame {
                 } else if (movement instanceof Castling) {
                     Castling castling = (Castling) movement;
                     actionTransmitter.castling(castling.longCastling);
+                } else if (movement instanceof Promotion) {
+                    Promotion promotion = (Promotion) movement;
+                    int oldPosX, oldPosY;
+                    if (promotion.movement instanceof SimpleMovement) {
+                        SimpleMovement move = (SimpleMovement) promotion.movement;
+                        Position pos = move.oldPosition;
+                        oldPosX = pos.x;
+                        oldPosY = pos.y;
+                    } else {
+                        EatMovement move = (EatMovement) promotion.movement;
+                        Position pos = move.attackerPosition;
+                        oldPosX = pos.x;
+                        oldPosY = pos.y;
+                    }
+                    actionTransmitter.promotion(oldPosX, oldPosY, x, y, promotion.newTileType.getName());
                 }
             }
         } else {
@@ -464,6 +496,36 @@ public class ChessGame {
         chessView.setResetOnPressListener(this::reset);
 
         if (netMode) {
+            actionTransmitter.setOnPromotionListener((oX, oY, nX, nY, nTT) -> {
+                Position oldPosition = new Position(oX, oY);
+                Position newPosition = new Position(nX, nY);
+                TileType tileType;
+                switch (nTT) {
+                    case 'B': {
+                        tileType = whiteTurn ? TileType.WHITE_BISHOP : TileType.BLACK_BISHOP;
+                        break;
+                    }
+                    case 'N': {
+                        tileType = whiteTurn ? TileType.WHITE_KNIGHT : TileType.BLACK_KNIGHT;
+                        break;
+                    }
+                    case 'Q': {
+                        tileType = whiteTurn ? TileType.WHITE_QUEEN : TileType.BLACK_QUEEN;
+                        break;
+                    }
+                    case 'R': {
+                        tileType = whiteTurn ? TileType.WHITE_ROOK : TileType.BLACK_ROOK;
+                        break;
+                    }
+                    default: tileType = TileType.BLANK;
+                }
+                Movement move;
+                if (gameBoard[nY][nX].getTileType() != TileType.BLANK)
+                    move = new EatMovement(oldPosition, newPosition);
+                else
+                    move = new SimpleMovement(oldPosition, newPosition);
+                onMove(new Promotion(move, tileType), false);
+            });
             actionTransmitter.setOnMakeMoveListener((oX, oY, nX, nY) -> {
                 Position oldPosition = new Position(oX, oY);
                 Position newPosition = new Position(nX, nY);
@@ -506,6 +568,7 @@ public class ChessGame {
                 Position kingNewPosition;
                 Position rookOldPosition;
                 Position rookNewPosition;
+
                 if (whiteTurn) {
                     if (longCastling) {
                         kingOldPosition = new Position(4, 7);
@@ -531,6 +594,7 @@ public class ChessGame {
                         rookNewPosition = new Position(5, 0);
                     }
                 }
+
                 Castling castling = new Castling(
                         kingOldPosition,
                         kingNewPosition,
