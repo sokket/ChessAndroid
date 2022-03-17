@@ -2,6 +2,7 @@ package ru.oceancraft.chess.ui;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -58,6 +59,7 @@ public class GameFragment extends Fragment implements ChessView {
 
     private OnPressListener onPressListener;
     private final CardView[][] views = new CardView[8][8];
+    private PopupMenu menu;
 
     private ViewPager2 viewPager;
     private GameViewModel gameViewModel;
@@ -277,8 +279,15 @@ public class GameFragment extends Fragment implements ChessView {
             put("Bishop", whiteGame ? TileType.WHITE_BISHOP : TileType.BLACK_BISHOP);
         }};
 
+        if (menu != null) {
+            menu.setOnMenuItemClickListener(null);
+            menu.setOnDismissListener(null);
+            menu.dismiss();
+            menu = null;
+        }
+
         View target = views[viewPos.y][viewPos.x];
-        PopupMenu menu = new PopupMenu(requireContext(), target);
+        menu = new PopupMenu(requireContext(), target);
 
         for (String name : tileTypeMap.keySet()) {
             menu.getMenu().add(name);
@@ -288,6 +297,7 @@ public class GameFragment extends Fragment implements ChessView {
             String title = item.getTitle().toString();
             TileType tileType = tileTypeMap.getOrDefault(title, whiteGame ? TileType.WHITE_QUEEN : TileType.BLACK_QUEEN);
             onPromotionListener.onSelectTileType(tileType);
+            menu.setOnMenuItemClickListener(null);
             return true;
         });
 
@@ -314,6 +324,14 @@ public class GameFragment extends Fragment implements ChessView {
     @Override
     public void onDestroy() {
         actionTransmitter.close();
+
+        if (menu != null) {
+            menu.setOnMenuItemClickListener(null);
+            menu.setOnDismissListener(null);
+            menu.dismiss();
+            menu = null;
+        }
+
         super.onDestroy();
     }
 }
