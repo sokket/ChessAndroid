@@ -2,6 +2,7 @@ package ru.oceancraft.chess.ui;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -10,6 +11,7 @@ import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
@@ -26,6 +28,8 @@ import org.jetbrains.annotations.NotNull;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -38,6 +42,7 @@ import ru.oceancraft.chess.model.ChessView;
 import ru.oceancraft.chess.model.GameState;
 import ru.oceancraft.chess.model.LogLine;
 import ru.oceancraft.chess.model.Message;
+import ru.oceancraft.chess.model.Position;
 import ru.oceancraft.chess.model.listeners.OnPressListener;
 import ru.oceancraft.chess.model.listeners.OnPromotionListener;
 import ru.oceancraft.chess.model.listeners.ResetOnPressListener;
@@ -264,8 +269,29 @@ public class GameFragment extends Fragment implements ChessView {
     }
 
     @Override
-    public void promotionChoiceRequirement(OnPromotionListener onPromotionListener) {
+    public void promotionChoiceRequirement(Position viewPos, boolean whiteGame, OnPromotionListener onPromotionListener) {
+        final Map<String, TileType> tileTypeMap = new HashMap<String, TileType>() {{
+            put("Queen", whiteGame ? TileType.WHITE_QUEEN : TileType.BLACK_QUEEN);
+            put("Knight", whiteGame ? TileType.WHITE_KNIGHT : TileType.BLACK_KNIGHT);
+            put("Rook", whiteGame ? TileType.WHITE_ROOK : TileType.BLACK_ROOK);
+            put("Bishop", whiteGame ? TileType.WHITE_BISHOP : TileType.BLACK_BISHOP);
+        }};
 
+        View target = views[viewPos.y][viewPos.x];
+        PopupMenu menu = new PopupMenu(requireContext(), target);
+
+        for (String name : tileTypeMap.keySet()) {
+            menu.getMenu().add(name);
+        }
+
+        menu.setOnMenuItemClickListener(item -> {
+            String title = item.getTitle().toString();
+            TileType tileType = tileTypeMap.getOrDefault(title, whiteGame ? TileType.WHITE_QUEEN : TileType.BLACK_QUEEN);
+            onPromotionListener.onSelectTileType(tileType);
+            return true;
+        });
+
+        menu.show();
     }
 
     @Override

@@ -481,6 +481,17 @@ public class ChessGame {
         Tile currentTile = gameBoard[y][x];
         if (currentTile.isLighted() && (!netMode || whiteGame == whiteTurn)) {
             Movement movement = findShowedMove(x, y);
+            if (movement instanceof Promotion) {
+                final Promotion srcPromotionMove = ((Promotion) movement);
+                final Movement promotionInternalMove = srcPromotionMove.movement;
+                boolean whiteFigure = (netMode && whiteGame) || (!netMode && whiteTurn);
+                chessView.promotionChoiceRequirement(promotionInternalMove.highLighted, whiteFigure, selectedTile -> {
+                    Movement promotionMovement = new Promotion(promotionInternalMove, selectedTile);
+                    promotionMovement.highLighted = srcPromotionMove.highLighted;
+                    onMove(promotionMovement, true);
+                });
+                return;
+            }
             onMove(movement, true);
         } else {
             highLightSrcX = x;

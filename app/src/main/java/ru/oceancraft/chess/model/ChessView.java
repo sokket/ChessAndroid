@@ -25,5 +25,5 @@ public interface ChessView {
 
     void onNetGameMoveFinished(boolean whiteTurn);
 
-    void promotionChoiceRequirement(OnPromotionListener onPromotionListener);
+    void promotionChoiceRequirement(Position viewPos, boolean isWhiteGame, OnPromotionListener onPromotionListener);
 }
