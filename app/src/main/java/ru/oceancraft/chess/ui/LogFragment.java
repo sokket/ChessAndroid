@@ -11,16 +11,21 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import javax.inject.Inject;
+
+import ru.oceancraft.chess.App;
 import ru.oceancraft.chess.R;
 import ru.oceancraft.chess.presentation.GameLogAdapter;
 import ru.oceancraft.chess.presentation.GameViewModel;
 
 
 public class LogFragment extends Fragment {
+
+    @Inject
+    GameViewModel model;
 
     public LogFragment() {
         // Required empty public constructor
@@ -36,7 +41,6 @@ public class LogFragment extends Fragment {
         GameLogAdapter adapter = new GameLogAdapter(LayoutInflater.from(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        GameViewModel model = new ViewModelProvider(requireActivity()).get(GameViewModel.class);
         model.getLogs().observe(getViewLifecycleOwner(), logLines -> {
             adapter.update(logLines);
             if (!logLines.isEmpty())
@@ -78,6 +82,8 @@ public class LogFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        App app = (App) requireActivity().getApplication();
+        app.appComponent.inject(this);
         return inflater.inflate(R.layout.fragment_log, container, false);
     }
 

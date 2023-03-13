@@ -1,5 +1,7 @@
 package ru.oceancraft.chess.model;
 
+import androidx.annotation.Nullable;
+
 import ru.oceancraft.chess.model.listeners.OnPressListener;
 import ru.oceancraft.chess.model.listeners.ResetOnPressListener;
 import ru.oceancraft.chess.model.listeners.OnPromotionListener;
@@ -7,7 +9,7 @@ import ru.oceancraft.chess.model.listeners.OnPromotionListener;
 public interface ChessView {
     void onHighLight(int x, int y, boolean isHighLighted, boolean isBlack);
 
-    void onChangeTile(int x, int y, TileType type);
+    void onChangeTile(int x, int y, TileType type, @Nullable TileCoordinates tileCoordinates);
 
     void setOnPressListener(OnPressListener onPressListener);
 

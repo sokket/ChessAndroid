@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import ru.oceancraft.chess.R;
@@ -25,12 +26,11 @@ public class GameLogAdapter extends RecyclerView.Adapter<GameLogAdapter.GameLogV
     public void update(List<LogLine> logLines) {
         if (logLines.isEmpty()) {
             listOfLog.clear();
-            notifyDataSetChanged();
         } else {
-            LogLine last = logLines.get(logLines.size() - 1);
-            listOfLog.add(last);
-            notifyItemInserted(listOfLog.size() - 1);
+            listOfLog.clear();
+            listOfLog.addAll(logLines);
         }
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -42,8 +42,24 @@ public class GameLogAdapter extends RecyclerView.Adapter<GameLogAdapter.GameLogV
 
     @Override
     public void onBindViewHolder(@NonNull GameLogViewHolder holder, int position) {
-        String log = position + 1 + ". " + listOfLog.get(position).toString();
-        holder.textView.setText(log);
+        holder.textView.setText(getLogs(position));
+    }
+
+    private String getLogs(int position) {
+        StringBuilder sb = new StringBuilder();
+        int moveNumber = (position / 2) + 1;
+        if (position % 2 == 0) {
+            sb.append(moveNumber);
+            sb.append(". ");
+        } else {
+            int spaceCount = (int) (Math.log10(moveNumber) + 1) + 2;
+            char[] spaces = new char[spaceCount];
+            Arrays.fill(spaces, ' ');
+            sb.append(spaces);
+        }
+        sb.append(listOfLog.get(position).toString());
+
+        return sb.toString();
     }
 
     @Override

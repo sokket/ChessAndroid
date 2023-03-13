@@ -10,6 +10,7 @@ public class GameState {
     private final boolean isWhiteMove;
     private final boolean isWhiteGame;
     private final boolean checkmate;
+    private final boolean stalemate;
 
     private final boolean allowedCastlingForLWR;
     private final boolean allowedCastlingForLBR;
@@ -22,13 +23,15 @@ public class GameState {
             Tile[][] board,
             boolean netMode, boolean isWhiteMove,
             boolean isWhiteGame,
-            boolean checkmate, boolean allowedCastlingForLWR,
+            boolean checkmate, boolean stalemate,
+            boolean allowedCastlingForLWR,
             boolean allowedCastlingForLBR,
             boolean allowedCastlingForRWR,
             boolean allowedCastlingForRBR,
             Position lastPawnMove) {
         this.netMode = netMode;
         this.checkmate = checkmate;
+        this.stalemate = stalemate;
         this.allowedCastlingForLWR = allowedCastlingForLWR;
         this.allowedCastlingForLBR = allowedCastlingForLBR;
         this.allowedCastlingForRWR = allowedCastlingForRWR;
@@ -90,5 +93,9 @@ public class GameState {
 
     public boolean isCheckmate() {
         return checkmate;
+    }
+
+    public boolean isStalemate() {
+        return stalemate;
     }
 }
