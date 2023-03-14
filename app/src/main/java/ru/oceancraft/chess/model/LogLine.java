@@ -1,17 +1,19 @@
 package ru.oceancraft.chess.model;
 
-import java.util.Locale;
+import androidx.annotation.NonNull;
 
 public class LogLine {
-    private int xOld;
-    private int yOld;
-    private int xNew;
-    private int yNew;
-    private char name;
+    private final int xOld;
+    private final int yOld;
+    private final int xNew;
+    private final int yNew;
+    private final char name;
+    private final boolean wasCapture;
     private final boolean castling;
     private final boolean longCastling;
-    private boolean check;
-    private boolean checkmate;
+    private final boolean check;
+    private final boolean checkmate;
+    private final boolean stalemate;
 
     public int getXOld() {
         return xOld;
@@ -37,37 +39,57 @@ public class LogLine {
         return castling;
     }
 
-    public LogLine(int xOld, int yOld, boolean castling, boolean longCastling) {
-        this.castling = castling;
-        this.longCastling = longCastling;
-    }
-
-    public LogLine(int xOld, int yOld, int xNew, int yNew, char name, boolean check, boolean checkmate, boolean castling, boolean longCastling) {
+    public LogLine(int xOld,
+                   int yOld,
+                   int xNew,
+                   int yNew,
+                   char name,
+                   boolean wasCapture,
+                   boolean check,
+                   boolean checkmate,
+                   boolean castling,
+                   boolean longCastling,
+                   boolean stalemate) {
         this.xOld = xOld;
         this.yOld = yOld;
         this.xNew = xNew;
         this.yNew = yNew;
         this.name = name;
+        this.wasCapture = wasCapture;
         this.check = check;
         this.checkmate = checkmate;
         this.castling = castling;
         this.longCastling = longCastling;
+        this.stalemate = stalemate;
     }
 
 
+    @NonNull
     @Override
     public String toString() {
-        return castling ? (longCastling ? "0-0-0" : "0-0") :
-                checkmate ?
-                        (name == ' ' ?
-                                String.format(Locale.ENGLISH, "%c%d-%c%d#", xOld + 97, 8 - yOld, xNew + 97, 8 - yNew) :
-                                String.format(Locale.ENGLISH, "%c%c%d-%c%d#", name, xOld + 97, 8 - yOld, xNew + 97, 8 - yNew)) :
-                        check ?
-                                (name == ' ' ?
-                                        String.format(Locale.ENGLISH, "%c%d-%c%d+", xOld + 97, 8 - yOld, xNew + 97, 8 - yNew) :
-                                        String.format(Locale.ENGLISH, "%c%c%d-%c%d+", name, xOld + 97, 8 - yOld, xNew + 97, 8 - yNew)) :
-                                (name == ' ' ?
-                                        String.format(Locale.ENGLISH, "%c%d-%c%d", xOld + 97, 8 - yOld, xNew + 97, 8 - yNew) :
-                                        String.format(Locale.ENGLISH, "%c%c%d-%c%d", name, xOld + 97, 8 - yOld, xNew + 97, 8 - yNew));
+        StringBuilder sb = new StringBuilder();
+
+        if (stalemate) {
+            sb.append("1/2-1/2");
+            return sb.toString();
+        }
+
+        if (castling) {
+            sb.append(longCastling ? "0-0-0" : "0-0");
+            return sb.toString();
+        }
+
+        if (name != ' ') sb.append(name);
+
+        sb.append((char) ('a' + xOld));
+        sb.append(8 - yOld);
+        sb.append(wasCapture ? 'x' : '-');
+        sb.append((char) ('a' + xNew));
+        sb.append(8 - yNew);
+
+        if (checkmate) sb.append('#');
+        else if (check) sb.append('+');
+
+        return sb.toString();
     }
 }

@@ -1,11 +1,18 @@
 package ru.oceancraft.chess.model;
 
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import ru.oceancraft.chess.model.movements.*;
 import ru.oceancraft.chess.model.action_transmitter.ActionTransmitter;
+import ru.oceancraft.chess.model.movements.Castling;
+import ru.oceancraft.chess.model.movements.EatMovement;
+import ru.oceancraft.chess.model.movements.EnPassant;
+import ru.oceancraft.chess.model.movements.Movement;
+import ru.oceancraft.chess.model.movements.Promotion;
+import ru.oceancraft.chess.model.movements.SimpleMovement;
 
 public class ChessGame {
     private final Tile[][] gameBoard = new Tile[8][8];
@@ -20,6 +27,7 @@ public class ChessGame {
     private boolean whiteTurn = true;
 
     private boolean checkmate = false;
+    private boolean stalemate = false;
 
     private Position lastPawnMove = null;
 
@@ -50,7 +58,9 @@ public class ChessGame {
                 netMode,
                 whiteTurn,
                 whiteGame,
-                checkmate, allowedCastlingForLWR,
+                checkmate,
+                stalemate,
+                allowedCastlingForLWR,
                 allowedCastlingForLBR,
                 allowedCastlingForRWR,
                 allowedCastlingForRBR,
@@ -78,6 +88,7 @@ public class ChessGame {
 
         netMode = gameState.isNetMode();
         checkmate = gameState.isCheckmate();
+        stalemate = gameState.isStalemate();
         lastPawnMove = gameState.getLastPawnMove();
 
         allowedMoves.clear();
@@ -147,7 +158,7 @@ public class ChessGame {
                         }
                         trimmed.add(simpleMovement);
                     } else if (targetTileType == TileType.BLACK_KING ||
-                                    targetTileType == TileType.WHITE_KING) {
+                            targetTileType == TileType.WHITE_KING) {
                         if (isSrcWhite != targetColor && notRealMove && (!isPawn || i != 0)) {
                             trimmed.add(new EatMovement(
                                     new Position(fromX, fromY),
@@ -223,7 +234,7 @@ public class ChessGame {
                         break;
                 }
 
-        if (!notRealMove && (!allowedMoves.isEmpty() || checkmate)) {
+        if (!notRealMove && (!allowedMoves.isEmpty() || checkmate || stalemate)) {
             return trimmed.stream()
                     .filter(allowedMoves::contains)
                     .collect(Collectors.toList());
@@ -257,7 +268,7 @@ public class ChessGame {
     }
 
     Position changeBoardWithMove(Tile[][] board, Movement movement) {
-        Position oldPosition = new Position(0,0);
+        Position oldPosition = new Position(0, 0);
         Position highLighted = movement.highLighted;
         if (movement instanceof SimpleMovement) {
             SimpleMovement simpleMovement = (SimpleMovement) movement;
@@ -349,7 +360,8 @@ public class ChessGame {
     private void syncWithView() {
         for (int i = 0; i < 8; i++)
             for (int j = 0; j < 8; j++) {
-                chessView.onChangeTile(i, j, gameBoard[j][i].getTileType());
+                TileCoordinates tileCoordinates = new TileCoordinates(i, j, netMode ? whiteGame : whiteTurn);
+                chessView.onChangeTile(i, j, gameBoard[j][i].getTileType(), tileCoordinates);
                 gameBoard[i][j].setHighLighted(false);
             }
     }
@@ -364,11 +376,12 @@ public class ChessGame {
                 int finalY = i;
                 int finalX = j;
 
+                TileCoordinates tileCoordinates = new TileCoordinates(finalX, finalY, whiteGame);
                 gameBoard[finalY][finalX] = new Tile(
                         isBlack,
                         initFigure,
                         isHighLighted -> chessView.onHighLight(finalX, finalY, isHighLighted, isBlack),
-                        tileType -> chessView.onChangeTile(finalX, finalY, tileType)
+                        tileType -> chessView.onChangeTile(finalX, finalY, tileType, tileCoordinates)
                 );
             }
     }
@@ -390,12 +403,18 @@ public class ChessGame {
             lastPawnMove = null;
     }
 
+    boolean wasCapture(Movement movement) {
+        return gameBoard[movement.highLighted.y][movement.highLighted.x].getTileType() != TileType.BLANK;
+    }
+
     void onMove(Movement movement, boolean fromUs) {
         clearHighLight();
 
         Position position = movement.highLighted;
         int x = position.x;
         int y = position.y;
+
+        boolean wasCapture = wasCapture(movement);
 
         Position old = changeBoardWithMove(gameBoard, movement);
 
@@ -446,7 +465,6 @@ public class ChessGame {
             }
         } else {
             chessView.onLocalGameMoveFinished(!whiteTurn);
-            syncWithView();
         }
 
         nextTurn();
@@ -455,19 +473,24 @@ public class ChessGame {
         boolean longCastling = castling && ((Castling) movement).longCastling;
         boolean check = isCheck(gameBoard);
         checkmate = check && allowedMoves.isEmpty();
+        stalemate = !checkmate && allowedMoves.isEmpty();
 
         chessView.onNewLogLine(
                 new LogLine(
                         old.x, old.y,
                         x, y,
                         targetTileType.getName(),
+                        wasCapture,
                         check,
                         checkmate,
                         castling,
-                        longCastling
+                        longCastling,
+                        stalemate
                 )
         );
         chessView.onNetGameMoveFinished(whiteTurn);
+
+        if (!netMode) syncWithView();
     }
 
     Movement findShowedMove(int x, int y) {
@@ -528,7 +551,8 @@ public class ChessGame {
                         tileType = whiteTurn ? TileType.WHITE_ROOK : TileType.BLACK_ROOK;
                         break;
                     }
-                    default: tileType = TileType.BLANK;
+                    default:
+                        tileType = TileType.BLANK;
                 }
                 Movement move;
                 if (gameBoard[nY][nX].getTileType() != TileType.BLANK)

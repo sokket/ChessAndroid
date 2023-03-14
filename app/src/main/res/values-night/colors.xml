@@ -5,4 +5,5 @@
     <color name="text_chat_our">#FFFFFF</color>
     <color name="chat_net">#A5D6A7</color>
     <color name="statusBar">#B3131313</color>
+    <color name="tileCoordinates">#000000</color>
 </resources>

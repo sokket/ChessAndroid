@@ -1,14 +1,14 @@
 package ru.oceancraft.chess.ui;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.GridLayout;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,10 +44,11 @@ import ru.oceancraft.chess.model.GameState;
 import ru.oceancraft.chess.model.LogLine;
 import ru.oceancraft.chess.model.Message;
 import ru.oceancraft.chess.model.Position;
+import ru.oceancraft.chess.model.TileCoordinates;
+import ru.oceancraft.chess.model.TileType;
 import ru.oceancraft.chess.model.listeners.OnPressListener;
 import ru.oceancraft.chess.model.listeners.OnPromotionListener;
 import ru.oceancraft.chess.model.listeners.ResetOnPressListener;
-import ru.oceancraft.chess.model.TileType;
 import ru.oceancraft.chess.net.NetworkActionTransmitter;
 import ru.oceancraft.chess.presentation.GamePagerAdapter;
 import ru.oceancraft.chess.presentation.GameViewModel;
@@ -62,7 +63,9 @@ public class GameFragment extends Fragment implements ChessView {
     private PopupMenu menu;
 
     private ViewPager2 viewPager;
-    private GameViewModel gameViewModel;
+
+    @Inject
+    GameViewModel gameViewModel;
 
     private int whiteColor;
     private int blackColor;
@@ -88,8 +91,6 @@ public class GameFragment extends Fragment implements ChessView {
         App app = (App) requireActivity().getApplication();
         app.appComponent.inject(this);
         super.onCreate(savedInstanceState);
-
-        gameViewModel = new ViewModelProvider(requireActivity()).get(GameViewModel.class);
     }
 
     @Override
@@ -140,18 +141,8 @@ public class GameFragment extends Fragment implements ChessView {
                 while ((len = gzipInputStream.read(buffer)) > 0) {
                     byteArrayOutputStream.write(buffer, 0, len);
                 }
-
-                int end = 0;
-                for (int i = 0; i < buffer.length; i++) {
-                    if (buffer[i] == 0) {
-                        end = i;
-                        break;
-                    }
-                }
-
-                String json = new String(buffer, 0, end);
                 Gson gson = new Gson();
-                GameState gameState = gson.fromJson(json, GameState.class);
+                GameState gameState = gson.fromJson(byteArrayOutputStream.toString(), GameState.class);
 
                 if (!gameState.isNetMode()) {
                     loadViews(gameState.isWhiteMove());
@@ -219,9 +210,18 @@ public class GameFragment extends Fragment implements ChessView {
     }
 
     @Override
-    public void onChangeTile(int x, int y, TileType type) {
+    public void onChangeTile(int x, int y, TileType type, @Nullable TileCoordinates tileCoordinates) {
         AndroidTileType androidTileType = AndroidTileType.getByTileType(type);
-        ImageView imageView = views[y][x].findViewById(R.id.img);
+        View currentView = views[y][x];
+        ImageView imageView = currentView.findViewById(R.id.img);
+
+        if (tileCoordinates != null) {
+            TextView textX = currentView.findViewById(R.id.boardXCoord);
+            TextView textY = currentView.findViewById(R.id.boardYCoord);
+            textX.setText(tileCoordinates.getTextX());
+            textY.setText(tileCoordinates.getTextY());
+        }
+
         if (androidTileType.getValue() != -1) {
             imageView.setVisibility(View.VISIBLE);
             Glide.with(this).load(androidTileType.getValue()).into(imageView);

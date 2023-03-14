@@ -31,6 +31,9 @@ public class ChatFragment extends Fragment {
     @Inject
     NetworkActionTransmitter actionTransmitter;
 
+    @Inject
+    GameViewModel model;
+
     public ChatFragment() {
         // Required empty public constructor
     }
@@ -52,8 +55,7 @@ public class ChatFragment extends Fragment {
         ChatAdapter adapter = new ChatAdapter(LayoutInflater.from(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        GameViewModel gameViewModel = new ViewModelProvider(requireActivity()).get(GameViewModel.class);
-        gameViewModel.getMessages().observe(getViewLifecycleOwner(), messages -> {
+        model.getMessages().observe(getViewLifecycleOwner(), messages -> {
             adapter.updateData(messages);
             if (!messages.isEmpty())
                 recyclerView.scrollToPosition(messages.size() - 1);
@@ -83,7 +85,7 @@ public class ChatFragment extends Fragment {
             if (!messageText.trim().isEmpty()) {
                 editText.setText("");
                 actionTransmitter.sendMessage(messageText);
-                gameViewModel.addMessage(new Message(messageText, true));
+                model.addMessage(new Message(messageText, true));
             }
         });
     }
